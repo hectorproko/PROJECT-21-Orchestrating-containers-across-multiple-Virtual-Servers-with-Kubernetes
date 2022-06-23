@@ -43,3 +43,31 @@ hector@hector-Laptop:~$ ls -l | grep cfssl
 hector@hector-Laptop:~$
 ```
 
+
+## AWS CLOUD RESOURCES FOR KUBERNETES CLUSTER  
+
+`hector@hector-Laptop:~$ mkdir k8s-cluster-from-ground-up`
+
+**Virtual Private Cloud – VPC**
+``` bash
+hector@hector-Laptop:~$ VPC_ID=$(aws ec2 create-vpc \
+> --cidr-block 172.31.0.0/16 \
+> --output text --query 'Vpc.VpcId'
+> )
+hector@hector-Laptop:~$ NAME=k8s-cluster-from-ground-up
+
+hector@hector-Laptop:~$ aws ec2 create-tags \
+>   --resources ${VPC_ID} \
+>   --tags Key=Name,Value=${NAME}
+
+hector@hector-Laptop:~$ aws ec2 modify-vpc-attribute \
+> --vpc-id ${VPC_ID} \
+> --enable-dns-support '{"Value": true}'
+
+hector@hector-Laptop:~$ aws ec2 modify-vpc-attribute \
+> --vpc-id ${VPC_ID} \
+> --enable-dns-hostnames '{"Value": true}'
+hector@hector-Laptop:~$
+```
+
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/EXPERIENCE-CONTINUOUS-INTEGRATION-WITH-JENKINS-ANSIBLE-ARTIFACTORY-SONARQUBE-PHP/main/images/token.png)  
