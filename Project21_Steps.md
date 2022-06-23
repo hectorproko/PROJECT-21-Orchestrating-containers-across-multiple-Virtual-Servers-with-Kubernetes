@@ -72,4 +72,52 @@ hector@hector-Laptop:~$ aws ec2 modify-vpc-attribute \
 hector@hector-Laptop:~$
 ```
 
-![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/K8s_architecture.png)  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/yourvpc.png)  
+
+**Domain Name System – DNS**  
+``` bash
+hector@hector-Laptop:~$ DHCP_OPTION_SET_ID=$(aws ec2 create-dhcp-options \
+>   --dhcp-configuration \
+>     "Key=domain-name,Values=$AWS_REGION.hector.compute.internal" \
+>     "Key=domain-name-servers,Values=AmazonProvidedDNS" \
+>   --output text --query 'DhcpOptions.DhcpOptionsId')
+hector@hector-Laptop:~$ #creates DHCP option set
+hector@hector-Laptop:~$ aws ec2 create-tags \
+>   --resources ${DHCP_OPTION_SET_ID} \
+>   --tags Key=Name,Value=${NAME}
+hector@hector-Laptop:~$ #adds the name to it, colum name
+hector@hector-Laptop:~$
+```
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/dhcp.png)  
+
+`AWS_REGION=us-east-1`  
+
+Associate the DHCP Option set with the VPC:  
+``` bash
+hector@hector-Laptop:~$ aws ec2 associate-dhcp-options \
+>   --dhcp-options-id ${DHCP_OPTION_SET_ID} \
+>   --vpc-id ${VPC_ID}
+hector@hector-Laptop:~$
+```
+
+VPC > Your VPCs  
+VPC is now associate with the above DHCP options set ID  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/yourvpc2.png)  
+
+Create the **Subnet**: 
+``` bash
+hector@hector-Laptop:~$ SUBNET_ID=$(aws ec2 create-subnet \
+>   --vpc-id ${VPC_ID} \
+>   --cidr-block 172.31.0.0/24 \
+>   --output text --query 'Subnet.SubnetId')
+aws ec2 create-tags \
+  --resources ${SUBNET_ID} \
+  --tags Key=Name,Value=${NAME}
+hector@hector-Laptop:~$ aws ec2 create-tags \
+>   --resources ${SUBNET_ID} \
+>   --tags Key=Name,Value=${NAME}
+hector@hector-Laptop:~$
+```
+
+VPC > Subnets  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/subnets.png)  
