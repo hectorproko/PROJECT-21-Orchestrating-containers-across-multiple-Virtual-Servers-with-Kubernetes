@@ -871,10 +871,6 @@ hector@hector-Laptop:~/ca-authority$
 
 ## DISTRIBUTING THE CLIENT AND SERVER CERTIFICATES
 
-## USE `KUBECTL` TO GENERATE KUBERNETES CONFIGURATION FILES FOR AUTHENTICATION
-## PREPARE THE ETCD DATABASE FOR ENCRYPTION AT REST
-## BOOTSTRAP THE CONTROL PLANE
-
 **Distributing the Client and Server Certificates**  
 ``` bash
 hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
@@ -953,3 +949,629 @@ master-kubernetes.pem                                                           
 master-kubernetes-key.pem                                                       100% 1679    27.3KB/s   00:00
 hector@hector-Laptop:~/ca-authority$
 ```
+
+
+## USE `KUBECTL` TO GENERATE KUBERNETES CONFIGURATION FILES FOR AUTHENTICATION
+
+1. Generate the **kubelet** kubeconfig file  
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ KUBERNETES_API_SERVER_ADDRESS=$(aws elbv2 describe-load-balancers --load-balancer-arns ${LOAD_BALANCER_ARN} --output text --query 'LoadBalancers[].DNSName')
+hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
+> instance="${NAME}-worker-${i}"
+> instance_hostname="ip-172-31-0-2${i}"
+> # Set the kubernetes cluster in the kubeconfig file
+>   kubectl config set-cluster ${NAME} \
+>     --certificate-authority=ca.pem \
+>     --embed-certs=true \
+>     --server=https://$KUBERNETES_API_SERVER_ADDRESS:6443 \
+>     --kubeconfig=${instance}.kubeconfig
+> # Set the cluster credentials in the kubeconfig file
+>   kubectl config set-credentials system:node:${instance_hostname} \
+>     --client-certificate=${instance}.pem \
+>     --client-key=${instance}-key.pem \
+>     --embed-certs=true \
+>     --kubeconfig=${instance}.kubeconfig
+> # Set the context in the kubeconfig file
+>   kubectl config set-context default \
+>     --cluster=${NAME} \
+>     --user=system:node:${instance_hostname} \
+>     --kubeconfig=${instance}.kubeconfig
+> kubectl config use-context default --kubeconfig=${instance}.kubeconfig
+> done
+Cluster "k8s-cluster-from-ground-up" set.
+User "system:node:ip-172-31-0-20" set.
+Context "default" created.
+Switched to context "default".
+Cluster "k8s-cluster-from-ground-up" set.
+User "system:node:ip-172-31-0-21" set.
+Context "default" created.
+Switched to context "default".
+Cluster "k8s-cluster-from-ground-up" set.
+User "system:node:ip-172-31-0-22" set.
+Context "default" created.
+Switched to context "default".
+hector@hector-Laptop:~/ca-authority$
+```
+``` bash
+hector@hector-Laptop:~/ca-authority$ ls -ltr *.kubeconfig
+-rw------- 1 hector hector 6511 Jun  8 21:25 k8s-cluster-from-ground-up-worker-0.kubeconfig
+-rw------- 1 hector hector 6507 Jun  8 21:25 k8s-cluster-from-ground-up-worker-1.kubeconfig
+-rw------- 1 hector hector 6507 Jun  8 21:25 k8s-cluster-from-ground-up-worker-2.kubeconfig
+hector@hector-Laptop:~/ca-authority$
+```
+
+2. Generate the **kube-proxy** kubeconfig  
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ {
+>   kubectl config set-cluster ${NAME} \
+>     --certificate-authority=ca.pem \
+>     --embed-certs=true \
+>     --server=https://${KUBERNETES_API_SERVER_ADDRESS}:6443 \
+>     --kubeconfig=kube-proxy.kubeconfig
+> kubectl config set-credentials system:kube-proxy \
+>     --client-certificate=kube-proxy.pem \
+>     --client-key=kube-proxy-key.pem \
+>     --embed-certs=true \
+>     --kubeconfig=kube-proxy.kubeconfig
+> kubectl config set-context default \
+>     --cluster=${NAME} \
+>     --user=system:kube-proxy \
+>     --kubeconfig=kube-proxy.kubeconfig
+> kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
+> }
+Cluster "k8s-cluster-from-ground-up" set.
+User "system:kube-proxy" set.
+Context "default" created.
+Switched to context "default".
+hector@hector-Laptop:~/ca-authority$
+```
+
+3. Generate the **Kube-Controller-Manager** kubeconfig  
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ {
+>   kubectl config set-cluster ${NAME} \
+>     --certificate-authority=ca.pem \
+>     --embed-certs=true \
+>     --server=https://127.0.0.1:6443 \
+>     --kubeconfig=kube-controller-manager.kubeconfig
+> kubectl config set-credentials system:kube-controller-manager \
+>     --client-certificate=kube-controller-manager.pem \
+>     --client-key=kube-controller-manager-key.pem \
+>     --embed-certs=true \
+>     --kubeconfig=kube-controller-manager.kubeconfig
+> kubectl config set-context default \
+>     --cluster=${NAME} \
+>     --user=system:kube-controller-manager \
+>     --kubeconfig=kube-controller-manager.kubeconfig
+> kubectl config use-context default --kubeconfig=kube-controller-manager.kubeconfig
+> }
+Cluster "k8s-cluster-from-ground-up" set.
+User "system:kube-controller-manager" set.
+Context "default" created.
+Switched to context "default".
+hector@hector-Laptop:~/ca-authority$
+```
+
+4. Generating the **Kube-Scheduler** Kubeconfig  
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ {
+> kubectl config set-cluster ${NAME} \
+    --certificate-authority=ca.pem \
+>     --certificate-authority=ca.pem \
+>     --embed-certs=true \
+>     --server=https://127.0.0.1:6443 \
+>     --kubeconfig=kube-scheduler.kubeconfig
+> kubectl config set-credentials system:kube-scheduler \
+>     --client-certificate=kube-scheduler.pem \
+>     --client-key=kube-scheduler-key.pem \
+>     --embed-certs=true \
+>     --kubeconfig=kube-scheduler.kubeconfig
+> kubectl config set-context default \
+>     --cluster=${NAME} \
+>     --user=system:kube-scheduler \
+>     --kubeconfig=kube-scheduler.kubeconfig
+> kubectl config use-context default --kubeconfig=kube-scheduler.kubeconfig
+> }
+Cluster "k8s-cluster-from-ground-up" set.
+User "system:kube-scheduler" set.
+Context "default" created.
+Switched to context "default".
+hector@hector-Laptop:~/ca-authority$
+```
+
+5. Finally, generate the kubeconfig file for the **admin user**
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ {
+>   kubectl config set-cluster ${NAME} \
+>     --certificate-authority=ca.pem \
+>     --embed-certs=true \
+>     --server=https://${KUBERNETES_API_SERVER_ADDRESS}:6443 \
+>     --kubeconfig=admin.kubeconfig
+> kubectl config set-credentials admin \
+>     --client-certificate=admin.pem \
+>     --client-key=admin-key.pem \
+>     --embed-certs=true \
+>     --kubeconfig=admin.kubeconfig
+> kubectl config set-context default \
+>     --cluster=${NAME} \
+>     --user=admin \
+>     --kubeconfig=admin.kubeconfig
+> kubectl config use-context default --kubeconfig=admin.kubeconfig
+> }
+Cluster "k8s-cluster-from-ground-up" set.
+User "admin" set.
+Context "default" created.
+Switched to context "default".
+hector@hector-Laptop:~/ca-authority$
+```
+
+Distribute the files to their respective servers, using `scp` and a for loop  
+
+**Worker**  
+``` bash
+hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
+>   instance="${NAME}-worker-${i}"
+>   external_ip=$(aws ec2 describe-instances \
+>     --filters "Name=tag:Name,Values=${instance}" \
+>     --output text --query 'Reservations[].Instances[].PublicIpAddress')
+>   scp -i ../ssh/${NAME}.id_rsa \
+>   ${instance}.kubeconfig kube-proxy.kubeconfig ubuntu@${external_ip}:~/; \
+> done
+k8s-cluster-from-ground-up-worker-0.kubeconfig                                                              100% 6511   101.2KB/s   00:00
+kube-proxy.kubeconfig                                                                                       100% 6342   100.6KB/s   00:00
+k8s-cluster-from-ground-up-worker-1.kubeconfig                                                              100% 6507   102.2KB/s   00:00
+kube-proxy.kubeconfig                                                                                       100% 6342   103.5KB/s   00:00
+k8s-cluster-from-ground-up-worker-2.kubeconfig                                                              100% 6507   105.6KB/s   00:00
+kube-proxy.kubeconfig                                                                                       100% 6342    96.1KB/s   00:00
+hector@hector-Laptop:~/ca-authority$
+
+```
+**Master**  
+``` bash
+hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
+> instance="${NAME}-master-${i}" \
+>   external_ip=$(aws ec2 describe-instances \
+>     --filters "Name=tag:Name,Values=${instance}" \
+>     --output text --query 'Reservations[].Instances[].PublicIpAddress')
+>   scp -i ../ssh/${NAME}.id_rsa \
+>   kube-controller-manager.kubeconfig kube-scheduler.kubeconfig ubuntu@${external_ip}:~/;
+> done
+kube-controller-manager.kubeconfig                                                                          100% 6425   104.3KB/s   00:00
+kube-scheduler.kubeconfig                                                                                   100% 6371    89.5KB/s   00:00
+kube-controller-manager.kubeconfig                                                                          100% 6425    87.8KB/s   00:00
+kube-scheduler.kubeconfig                                                                                   100% 6371    99.5KB/s   00:00
+kube-controller-manager.kubeconfig                                                                          100% 6425   102.6KB/s   00:00
+kube-scheduler.kubeconfig                                                                                   100% 6371    86.1KB/s   00:00
+hector@hector-Laptop:~/ca-authority$
+```
+
+## PREPARE THE ETCD DATABASE FOR ENCRYPTION AT REST
+``` bash
+hector@hector-Laptop:~/ca-authority$ ETCD_ENCRYPTION_KEY=$(head -c 64 /dev/urandom | base64)
+hector@hector-Laptop:~/ca-authority$ echo $ETCD_ENCRYPTION_KEY
+ibbYlKxF8d9rfVJrNB3qGuSvw8JPtNw1dnEOHpYxSppc2uRz91buFt9iF1VTYgSkXnlW73y9dReR saUXK3gDVw==
+hector@hector-Laptop:~/ca-authority$
+```
+
+Create an `encryption-config.yaml` file as documented officially by kubernetes
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ cat > encryption-config.yaml <<EOF
+> kind: EncryptionConfig
+> apiVersion: v1
+> resources:
+>   - resources:
+>       - secrets
+>     providers:
+>       - aescbc:
+>           keys:
+>             - name: key1
+>               secret: ${ETCD_ENCRYPTION_KEY}
+>       - identity: {}
+> EOF
+hector@hector-Laptop:~/ca-authority$ ls | grep encryption
+encryption-config.yaml
+```
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ bat encryption-config.yaml
+───────┬──────────────────────────────────────────────────────────────────────────────────────
+       │ File: encryption-config.yaml
+───────┼──────────────────────────────────────────────────────────────────────────────────────
+   1   │ kind: EncryptionConfig
+   2   │ apiVersion: v1
+   3   │ resources:
+   4   │   - resources:
+   5   │       - secrets
+   6   │     providers:
+   7   │       - aescbc:
+   8   │           keys:
+   9   │             - name: key1
+  10   │               secret: ibbYlKxF8d9rfVJrNB3qGuSvw8JPtNw1dnEOHpYxSppc2uRz91buFt9iF1VTYgSkXnlW73y9dReR
+  11   │ saUXK3gDVw==
+  12   │       - identity: {}
+───────┴────────────────────────────────────────────────────────────────────────────────────────
+hector@hector-Laptop:~/ca-authority$
+```
+
+Send the encryption file to the **Controller nodes** using `scp` and a `for` loop.  
+
+**Master**:
+``` bash
+hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
+> instance="${NAME}-master-${i}" \
+>   external_ip=$(aws ec2 describe-instances \
+>     --filters "Name=tag:Name,Values=${instance}" \
+>     --output text --query 'Reservations[].Instances[].PublicIpAddress')
+>   scp -i ../ssh/${NAME}.id_rsa \
+>   encryption-config.yaml ubuntu@${external_ip}:~/;
+> done
+encryption-config.yaml                                                                                      100%  285     4.9KB/s   00:00
+encryption-config.yaml                                                                                      100%  285     5.7KB/s   00:00
+encryption-config.yaml                                                                                      100%  285     5.6KB/s   00:00
+hector@hector-Laptop:~/ca-authority$
+```
+
+
+SSH into the controller server  
+``` bash
+hector@hector-Laptop:~/ca-authority$ cd ~/.ssh/
+hector@hector-Laptop:~/.ssh$
+```
+
+The **.pem** key we need k8s-cluster-from-ground-up.id_rsa is in a **ssh** folder in home directory  
+``` bash
+hector@hector-Laptop:~/ssh$ pwd
+/home/hector/ssh
+hector@hector-Laptop:~/ssh$ ls
+k8s-cluster-from-ground-up.id_rsa
+hector@hector-Laptop:~/ssh$
+```
+
+1. SSH into the controller server
+
+**Master1** (after logged in checking files)
+``` bash
+ubuntu@ip-172-31-0-10:~$ ls -l
+total 44
+-rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 ca-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1342 Jun  9 01:17 ca.pem
+-rw-rw-r-- 1 ubuntu ubuntu  285 Jun 15 15:41 encryption-config.yaml
+-rw------- 1 ubuntu ubuntu 6425 Jun 15 14:52 kube-controller-manager.kubeconfig
+-rw------- 1 ubuntu ubuntu 6371 Jun 15 14:52 kube-scheduler.kubeconfig
+-rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 master-kubernetes-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1862 Jun  9 01:17 master-kubernetes.pem
+-rw------- 1 ubuntu ubuntu 1675 Jun  9 01:17 service-account-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1432 Jun  9 01:17 service-account.pem
+ubuntu@ip-172-31-0-10:~$
+```
+
+**Master2**
+``` bash
+ubuntu@ip-172-31-0-11:~$ ls -l
+total 44
+-rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 ca-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1342 Jun  9 01:17 ca.pem
+-rw-rw-r-- 1 ubuntu ubuntu  285 Jun 15 15:41 encryption-config.yaml
+-rw------- 1 ubuntu ubuntu 6425 Jun 15 14:52 kube-controller-manager.kubeconfig
+-rw------- 1 ubuntu ubuntu 6371 Jun 15 14:52 kube-scheduler.kubeconfig
+-rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 master-kubernetes-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1862 Jun  9 01:17 master-kubernetes.pem
+-rw------- 1 ubuntu ubuntu 1675 Jun  9 01:17 service-account-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1432 Jun  9 01:17 service-account.pem
+ubuntu@ip-172-31-0-11:~$
+```
+
+**Master3**
+``` bash
+ubuntu@ip-172-31-0-12:~$ ls -l
+total 44
+-rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 ca-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1342 Jun  9 01:17 ca.pem
+-rw-rw-r-- 1 ubuntu ubuntu  285 Jun 15 15:41 encryption-config.yaml
+-rw------- 1 ubuntu ubuntu 6425 Jun 15 14:52 kube-controller-manager.kubeconfig
+-rw------- 1 ubuntu ubuntu 6371 Jun 15 14:52 kube-scheduler.kubeconfig
+-rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 master-kubernetes-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1862 Jun  9 01:17 master-kubernetes.pem
+-rw------- 1 ubuntu ubuntu 1675 Jun  9 01:17 service-account-key.pem
+-rw-rw-r-- 1 ubuntu ubuntu 1432 Jun  9 01:17 service-account.pem
+ubuntu@ip-172-31-0-12:~$
+```
+
+
+2. Download and install **etcd**  
+``` bash
+ubuntu@ip-172-31-0-10:~$ wget -q --show-progress --https-only --timestamping \
+>   " https://github.com/etcd-io/etcd/releases/download/v3.4.15/etcd-v3.4.15-linux-amd64.tar.gz"
+etcd-v3.4.15-linux-amd64.tar.gz                  100%[========================================================================================================>]  16.60M   108MB/s    in 0.2s
+ubuntu@ip-172-31-0-10:~$
+```
+
+3. Extract and install the etcd server and the etcdctl command line utility: ( 3 master instances done)
+`tar -xvf etcd-v3.4.15-linux-amd64.tar.gz && sudo mv etcd-v3.4.15-linux-amd64/etcd* /usr/local/bin/`
+``` bash
+ubuntu@ip-172-31-0-10:~/etcd-v3.4.15-linux-amd64$ ls /usr/local/bin/
+etcd  etcdctl
+```
+4. Configure the **etcd** server (3 master instances done)
+``` bash
+ubuntu@ip-172-31-0-10:~$ {
+>   sudo mkdir -p /etc/etcd /var/lib/etcd
+>   sudo chmod 700 /var/lib/etcd
+>   sudo cp ca.pem master-kubernetes-key.pem master-kubernetes.pem /etc/etcd/
+> }
+sudo: unable to resolve host ip-172-31-0-10
+sudo: unable to resolve host ip-172-31-0-10
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$ ls /etc/etcd/
+ca.pem  master-kubernetes-key.pem  master-kubernetes.pem
+```
+
+5. The instance internal IP address will be used to serve client requests and communicate with **etcd** cluster peers. Retrieve the internal IP address for the current compute instance:
+`export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)`
+
+6. Each **etcd** member must have a unique name within an **etcd** cluster. Set the **etcd** name to node Private IP address so it will uniquely identify the machine:
+
+``` bash
+ubuntu@ip-172-31-0-11:~$ ETCD_NAME=$(curl -s http://169.254.169.254/latest/user-data/ \
+>   | tr "|" "\n" | grep "^name" | cut -d"=" -f2)
+ubuntu@ip-172-31-0-11:~$ echo ${ETCD_NAME}
+master-1 #example of one done
+ubuntu@ip-172-31-0-11:~$
+```
+
+
+7. Create the etcd.service systemd unit file: (in 3 masters)
+
+``` bash
+ubuntu@ip-172-31-0-10:/etc/systemd/system$ ls | grep etcd
+etcd.service
+ubuntu@ip-172-31-0-10:/etc/systemd/system$ cat etcd.service
+[Unit]
+Description=etcd
+Documentation=https://github.com/coreos
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/etcd \
+  --name master-0 \
+  --trusted-ca-file=/etc/etcd/ca.pem \
+  --peer-trusted-ca-file=/etc/etcd/ca.pem \
+  --peer-client-cert-auth \
+  --client-cert-auth \
+  --listen-peer-urls https://172.31.0.10:2380 \
+  --listen-client-urls https://172.31.0.10:2379,https://127.0.0.1:2379 \
+  --advertise-client-urls https://172.31.0.10:2379 \
+  --initial-cluster-token etcd-cluster-0 \
+  --initial-cluster master-0=https://172.31.0.10:2380,master-1=https://172.31.0.11:2380,master-2=https://172.31.0.12:2380 \
+  --cert-file=/etc/etcd/master-kubernetes.pem \
+  --key-file=/etc/etcd/master-kubernetes-key.pem \
+  --peer-cert-file=/etc/etcd/master-kubernetes.pem \
+  --peer-key-file=/etc/etcd/master-kubernetes-key.al-advertise-peepem \
+  --initir-urls https://0 \
+  --initia{INTERNAL_IP}:23l-cluster-state new \
+  --data-dir=/var/lib/etcd
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+ubuntu@ip-172-31-0-10:/etc/systemd/system$
+```
+
+
+8. Start and enable the **etcd** Server
+``` bash
+ubuntu@ip-172-31-0-12:~$ {
+> sudo systemctl daemon-reload
+> sudo systemctl enable etcd
+> sudo systemctl start etcd
+> }
+sudo: unable to resolve host ip-172-31-0-12
+sudo: unable to resolve host ip-172-31-0-12
+sudo: unable to resolve host ip-172-31-0-12
+ubuntu@ip-172-31-0-12:~$
+```
+**Now all 3 master have status active**  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/activerunning.png)  
+
+9. Verify the **etcd** installation  
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ sudo ETCDCTL_API=3 etcdctl member list \
+>   --endpoints=https://127.0.0.1:2379 \
+>   --cacert=/etc/etcd/ca.pem \
+>   --cert=/etc/etcd/master-kubernetes.pem \
+>   --key=/etc/etcd/master-kubernetes-key.pem
+sudo: unable to resolve host ip-172-31-0-10
+6709c481b5234095, started, master-0, https://172.31.0.10:2380, https://172.31.0.10:2379, false
+ade74a4f39c39f33, started, master-1, https://172.31.0.11:2380, https://172.31.0.11:2379, false
+ed33b44c0b153ee3, started, master-2, https://172.31.0.12:2380, https://172.31.0.12:2379, false
+ubuntu@ip-172-31-0-10:~$
+```
+``` bash
+ubuntu@ip-172-31-0-11:~$ sudo ETCDCTL_API=3 etcdctl member list \
+>   --endpoints=https://127.0.0.1:2379 \
+>   --cacert=/etc/etcd/ca.pem \
+>   --cert=/etc/etcd/master-kubernetes.pem \
+>   --key=/etc/etcd/master-kubernetes-key.pem
+sudo: unable to resolve host ip-172-31-0-11
+6709c481b5234095, started, master-0, https://172.31.0.10:2380, https://172.31.0.10:2379, false
+ade74a4f39c39f33, started, master-1, https://172.31.0.11:2380, https://172.31.0.11:2379, false
+ed33b44c0b153ee3, started, master-2, https://172.31.0.12:2380, https://172.31.0.12:2379, false
+ubuntu@ip-172-31-0-11:~$
+```
+``` bash
+ubuntu@ip-172-31-0-12:~$ sudo ETCDCTL_API=3 etcdctl member list \
+>   --endpoints=https://127.0.0.1:2379 \
+>   --cacert=/etc/etcd/ca.pem \
+>   --cert=/etc/etcd/master-kubernetes.pem \
+>   --key=/etc/etcd/master-kubernetes-key.pem
+sudo: unable to resolve host ip-172-31-0-12
+6709c481b5234095, started, master-0, https://172.31.0.10:2380, https://172.31.0.10:2379, false
+ade74a4f39c39f33, started, master-1, https://172.31.0.11:2380, https://172.31.0.11:2379, false
+ed33b44c0b153ee3, started, master-2, https://172.31.0.12:2380, https://172.31.0.12:2379, false
+ubuntu@ip-172-31-0-12:~$
+```
+
+
+
+## BOOTSTRAP THE CONTROL PLANE
+
+1. Create the Kubernetes configuration directory:  
+`sudo mkdir -p /etc/kubernetes/config`
+
+2. Download the official Kubernetes release binaries:  
+``` bash
+ubuntu@ip-172-31-0-10:~$ wget -q --show-progress --https-only --timestamping \
+> "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-apiserver" \
+> "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-controller-manager" \
+> "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-scheduler" \
+> "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubectl"
+kube-apiserver                      100%[==================================================================>] 116.41M  94.1MB/s    in 1.2s
+kube-controller-manager             100%[==================================================================>] 110.89M   100MB/s    in 1.1s
+kube-scheduler                      100%[==================================================================>]  44.92M  90.3MB/s    in 0.5s
+kubectl                             100%[==================================================================>]  44.29M  98.6MB/s    in 0.4s
+ubuntu@ip-172-31-0-10:~$
+```
+
+3. Install the Kubernetes binaries:  
+``` bash
+ubuntu@ip-172-31-0-10:~$ {
+> chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
+> sudo mv kube-apiserver kube-controller-manager kube-scheduler kubectl /usr/local/bin/
+> }
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$ ls /usr/local/bin/
+etcd  etcdctl  kube-apiserver  kube-controller-manager  kubectl  kube-scheduler
+ubuntu@ip-172-31-0-10:~$
+```
+
+4. Configure the Kubernetes API Server:  
+``` bash
+ubuntu@ip-172-31-0-10:~$ {
+> sudo mkdir -p /var/lib/kubernetes/
+>
+> sudo mv ca.pem ca-key.pem master-kubernetes-key.pem master-kubernetes.pem \
+> service-account-key.pem service-account.pem \
+> encryption-config.yaml /var/lib/kubernetes/
+> }
+sudo: unable to resolve host ip-172-31-0-10
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$ ls /var/lib/kubernetes/
+ca-key.pem  ca.pem  encryption-config.yaml  master-kubernetes-key.pem  master-kubernetes.pem  service-account-key.pem  service-account.pem
+ubuntu@ip-172-31-0-10:~$
+```
+
+Get internal IP to build file  
+`export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)`  
+
+5. Configure the Kubernetes Controller Manager:  
+
+Move the kube-controller-manager kubeconfig into place:  
+`sudo mv kube-controller-manager.kubeconfig /var/lib/kubernetes/`
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ sudo mv kube-controller-manager.kubeconfig /var/lib/kubernetes/
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$ ls /var/lib/kubernetes/
+ca-key.pem  encryption-config.yaml              master-kubernetes-key.pem  service-account-key.pem
+ca.pem      kube-controller-manager.kubeconfig  master-kubernetes.pem      service-account.pem
+ubuntu@ip-172-31-0-10:~$
+```
+
+Export some variables to retrieve the `vpc_cidr` – This will be required for the bind-address flag:  
+``` bash
+ubuntu@ip-172-31-0-12:~$ export AWS_METADATA="http://169.254.169.254/latest/meta-data"
+ubuntu@ip-172-31-0-12:~$ export EC2_MAC_ADDRESS=$(curl -s $AWS_METADATA/network/interfaces/macs/ | head -n1 | tr -d '/')
+ubuntu@ip-172-31-0-12:~$ export VPC_CIDR=$(curl -s $AWS_METADATA/network/interfaces/macs/$EC2_MAC_ADDRESS/vpc-ipv4-cidr-block/)
+ubuntu@ip-172-31-0-12:~$ export NAME=k8s-cluster-from-ground-up
+ubuntu@ip-172-31-0-12:~$ echo $AWS_METADATA
+http://169.254.169.254/latest/meta-data
+ubuntu@ip-172-31-0-12:~$ echo $EC2_MAC_ADDRESS
+06:c9:ba:4b:28:03
+ubuntu@ip-172-31-0-12:~$ echo $VPC_CIDR
+172.31.0.0/16
+ubuntu@ip-172-31-0-12:~$ echo $NAME
+k8s-cluster-from-ground-up
+ubuntu@ip-172-31-0-12:~$
+```
+Create the kube-controller-manager.service systemd unit file:  
+``` bash
+ubuntu@ip-172-31-0-10:~$ ls /etc/systemd/system/ | grep kube-controller-manager.service
+kube-controller-manager.service
+ubuntu@ip-172-31-0-10:~$
+```
+
+6. Configure the Kubernetes Scheduler:
+
+Move the kube-scheduler kubeconfig into place:
+``` bash
+ubuntu@ip-172-31-0-10:~$ sudo mv kube-scheduler.kubeconfig /var/lib/kubernetes/
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$ sudo mkdir -p /etc/kubernetes/config
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$ ls /var/lib/kubernetes/ | grep kube-schedul
+kube-scheduler.kubeconfig
+ubuntu@ip-172-31-0-10:~$ ls /etc/kubernetes/
+config
+ubuntu@ip-172-31-0-10:~$
+```
+
+Create the `kube-scheduler.yaml` configuration file:  
+``` bash
+ubuntu@ip-172-31-0-10:~$ cat <<EOF | sudo tee /etc/kubernetes/config/kube-scheduler.yaml
+> apiVersion: kubescheduler.config.k8s.io/v1beta1
+> kind: KubeSchedulerConfiguration
+> clientConnection:
+>   kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+> leaderElection:
+>   leaderElect: true
+> EOF
+sudo: unable to resolve host ip-172-31-0-10
+apiVersion: kubescheduler.config.k8s.io/v1beta1
+kind: KubeSchedulerConfiguration
+clientConnection:
+  kubeconfig: "/var/lib/kubernetes/kube-scheduler.kubeconfig"
+leaderElection:
+  leaderElect: true
+ubuntu@ip-172-31-0-10:~$
+```
+
+Create the kube-scheduler.service systemd unit file:  
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ cat <<EOF | sudo tee /etc/systemd/system/kube-scheduler.service
+> [Unit]
+> Description=Kubernetes Scheduler
+> Documentation=https://github.com/kubernetes/kubernetes
+> [Service]
+> ExecStart=/usr/local/bin/kube-scheduler \\
+>   --config=/etc/kubernetes/config/kube-scheduler.yaml \\
+>   --v=2
+> Restart=on-failure
+> RestartSec=5
+> [Install]
+> WantedBy=multi-user.target
+> EOF
+sudo: unable to resolve host ip-172-31-0-10
+[Unit]
+Description=Kubernetes Scheduler
+Documentation=https://github.com/kubernetes/kubernetes
+[Service]
+ExecStart=/usr/local/bin/kube-scheduler \
+  --config=/etc/kubernetes/config/kube-scheduler.yaml \
+  --v=2
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+ubuntu@ip-172-31-0-10:~$
+```
+
+
+7. Start the Controller Services
+
