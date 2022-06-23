@@ -1,6 +1,8 @@
 # PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes
 Project 21
 
+## KUBERNETES ARCHITECTURE  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/K8s_architecture.png)
 
 ## INSTALL CLIENT TOOLS BEFORE BOOTSTRAPPING THE CLUSTER.
 
@@ -70,4 +72,4 @@ hector@hector-Laptop:~$ aws ec2 modify-vpc-attribute \
 hector@hector-Laptop:~$
 ```
 
-![Markdown Logo](https://raw.githubusercontent.com/hectorproko/EXPERIENCE-CONTINUOUS-INTEGRATION-WITH-JENKINS-ANSIBLE-ARTIFACTORY-SONARQUBE-PHP/main/images/token.png)  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/K8s_architecture.png)  
