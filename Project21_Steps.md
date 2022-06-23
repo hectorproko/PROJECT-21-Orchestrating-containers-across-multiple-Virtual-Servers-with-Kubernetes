@@ -121,3 +121,72 @@ hector@hector-Laptop:~$
 
 VPC > Subnets  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/subnets.png)  
+
+
+Create the **Internet Gateway** and attach it to the VPC:  
+
+``` bash
+hector@hector-Laptop:~$ INTERNET_GATEWAY_ID=$(aws ec2 create-internet-gateway \
+>   --output text --query 'InternetGateway.InternetGatewayId')
+aws ec2 create-tags \
+  --resources ${INTERNET_GATEWAY_ID} \
+  --tags Key=Name,Value=${NAME}
+aws ec2 attach-internet-gateway \
+  --internet-gateway-id ${INTERNET_GATEWAY_ID} \
+  --vpc-id ${VPC_ID}
+hector@hector-Laptop:~$ aws ec2 create-tags \
+>   --resources ${INTERNET_GATEWAY_ID} \
+>   --tags Key=Name,Value=${NAME}
+hector@hector-Laptop:~$ aws ec2 attach-internet-gateway \
+>   --internet-gateway-id ${INTERNET_GATEWAY_ID} \
+>   --vpc-id ${VPC_ID}
+hector@hector-Laptop:~$
+```
+
+VPC ID   
+`vpc-003a8fe8a20274a1d`  
+
+VPC > Internet gateways  
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/gateways.png)  
+
+Create route tables, associate the **route table** to subnet, and create a route to allow external traffic to the Internet through the Internet Gateway:  
+
+``` bash
+hector@hector-Laptop:~$ ROUTE_TABLE_ID=$(aws ec2 create-route-table \
+>   --vpc-id ${VPC_ID} \
+>   --output text --query 'RouteTable.RouteTableId')
+aws ec2 create-tags \
+  --resources ${ROUTE_TABLE_ID} \
+  --tags Key=Name,Value=${NAME}
+aws ec2 associate-route-table \
+  --route-table-id ${ROUTE_TABLE_ID} \
+  --subnet-id ${SUBNET_ID}
+aws ec2 create-route \
+  --route-table-id ${ROUTE_TABLE_ID} \
+  --destination-cidr-block 0.0.0.0/0 \
+  --gateway-id ${INTERNET_GATEWAY_ID}
+hector@hector-Laptop:~$ aws ec2 create-tags \
+>   --resources ${ROUTE_TABLE_ID} \
+>   --tags Key=Name,Value=${NAME}
+hector@hector-Laptop:~$ aws ec2 associate-route-table \
+>   --route-table-id ${ROUTE_TABLE_ID} \
+>   --subnet-id ${SUBNET_ID}
+{
+    "AssociationId": "rtbassoc-0127a282e2bedeec0",
+    "AssociationState": {
+        "State": "associated"
+    }
+}
+hector@hector-Laptop:~$ aws ec2 create-route \
+>   --route-table-id ${ROUTE_TABLE_ID} \
+>   --destination-cidr-block 0.0.0.0/0 \
+>   --gateway-id ${INTERNET_GATEWAY_ID}
+{
+    "Return": true
+}
+hector@hector-Laptop:~$
+```
+
+VPC > Route tables
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/routetables.png)  
+
