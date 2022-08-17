@@ -1574,4 +1574,796 @@ ubuntu@ip-172-31-0-10:~$
 
 
 7. Start the Controller Services
+``` bash
+ubuntu@ip-172-31-0-10:~$ {
+> sudo systemctl daemon-reload
+> sudo systemctl enable kube-apiserver kube-controller-manager kube-scheduler
+> sudo systemctl start kube-apiserver kube-controller-manager kube-scheduler
+> }
+sudo: unable to resolve host ip-172-31-0-10
+sudo: unable to resolve host ip-172-31-0-10
+Created symlink from /etc/systemd/system/multi-user.target.wants/kube-apiserver.service to /etc/systemd/system/kube-apiserver.service.
+Created symlink from /etc/systemd/system/multi-user.target.wants/kube-controller-manager.service to /etc/systemd/system/kube-controller-manager.service.
+Created symlink from /etc/systemd/system/multi-user.target.wants/kube-scheduler.service to /etc/systemd/system/kube-scheduler.service.
+sudo: unable to resolve host ip-172-31-0-10
+ubuntu@ip-172-31-0-10:~$
+```
 
+Check the status of the services   
+``` bash
+sudo systemctl status kube-apiserver
+sudo systemctl status kube-controller-manager
+sudo systemctl status kube-scheduler
+```
+
+## TEST THAT EVERYTHING IS WORKING FINE
+
+1. To get the cluster details run:
+
+clusterinfo.png
+``` bash
+hector@hector-Laptop:~/ca-authority$ kubectl cluster-info  --kubeconfig admin.kubeconfig
+Kubernetes control plane is running at https://k8s-cluster-from-ground-up-a09ad605b1edac82.elb.us-east-1.amazonaws.com:6443
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+hector@hector-Laptop:~/ca-authority$
+```
+*(No need to use --kubeconfig admin.kubeconfig I already replaced .kube/config with it making it default)*
+
+
+2. To get the current namespaces:
+``` bash
+hector@hector-Laptop:~/ca-authority$ kubectl get namespaces --kubeconfig admin.kubeconfig
+NAME              STATUS   AGE
+default           Active   24h
+kube-node-lease   Active   24h
+kube-public       Active   24h
+kube-system       Active   24h
+hector@hector-Laptop:~/ca-authority$
+```
+
+3. To reach the Kubernetes API Server publicly (workers with Private IP from master to master)
+curl --cacert /var/lib/kubernetes/ca.pem https://$INTERNAL_IP:6443/version
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ curl --cacert /var/lib/kubernetes/ca.pem  https://172.31.0.10:6443/version
+{
+  "major": "1",
+  "minor": "21",
+  "gitVersion": "v1.21.0",
+  "gitCommit": "cb303e613a121a29364f75cc67d3d580833a7479",
+  "gitTreeState": "clean",
+  "buildDate": "2021-04-08T16:25:06Z",
+  "goVersion": "go1.16.1",
+  "compiler": "gc",
+  "platform": "linux/amd64"
+}ubuntu@ip-172-31-0-10:~$ curl --cacert /var/lib/kubernetes/ca.pem  https://172.31.0.11:6443/version
+{
+  "major": "1",
+  "minor": "21",
+  "gitVersion": "v1.21.0",
+  "gitCommit": "cb303e613a121a29364f75cc67d3d580833a7479",
+  "gitTreeState": "clean",
+  "buildDate": "2021-04-08T16:25:06Z",
+  "goVersion": "go1.16.1",
+  "compiler": "gc",
+  "platform": "linux/amd64"
+}ubuntu@ip-172-31-0-10:~$ curl --cacert /var/lib/kubernetes/ca.pem  https://172.31.0.12:6443/version
+{
+  "major": "1",
+  "minor": "21",
+  "gitVersion": "v1.21.0",
+  "gitCommit": "cb303e613a121a29364f75cc67d3d580833a7479",
+  "gitTreeState": "clean",
+  "buildDate": "2021-04-08T16:25:06Z",
+  "goVersion": "go1.16.1",
+  "compiler": "gc",
+  "platform": "linux/amd64"
+}ubuntu@ip-172-31-0-10:~$
+```
+
+
+4. To get the status of each component:
+`kubectl get componentstatuses --kubeconfig admin.kubeconfig` 
+
+I had to transfer the file admin.kueconfig to the master before running this command  
+
+`publicIP="ec2-54-160-126-224.compute-1.amazonaws.com"`
+`publicIP="ec2-54-160-126-195.compute-1.amazonaws.com"`
+`publicIP="ec2-54-237-217-61.compute-1.amazonaws.com"`
+
+`scp -i "k8s-cluster-from-ground-up.id_rsa" admin.kubeconfig ubuntu@$publicIP:~/`
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ kubectl get componentstatuses --kubeconfig admin.kubeconfig
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS    MESSAGE             ERROR
+etcd-0               Healthy   {"health":"true"}
+scheduler            Healthy   ok
+controller-manager   Healthy   ok
+etcd-2               Healthy   {"health":"true"}
+etcd-1               Healthy   {"health":"true"}
+ubuntu@ip-172-31-0-10:~$
+
+ubuntu@ip-172-31-0-11:~$ kubectl get componentstatuses --kubeconfig admin.kubeconfig
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS    MESSAGE             ERROR
+controller-manager   Healthy   ok
+scheduler            Healthy   ok
+etcd-2               Healthy   {"health":"true"}
+etcd-1               Healthy   {"health":"true"}
+etcd-0               Healthy   {"health":"true"}
+ubuntu@ip-172-31-0-11:~$
+
+ubuntu@ip-172-31-0-12:~$ kubectl get componentstatuses --kubeconfig admin.kubeconfig
+Warning: v1 ComponentStatus is deprecated in v1.19+
+NAME                 STATUS    MESSAGE             ERROR
+scheduler            Healthy   ok
+controller-manager   Healthy   ok
+etcd-2               Healthy   {"health":"true"}
+etcd-1               Healthy   {"health":"true"}
+etcd-0               Healthy   {"health":"true"}
+ubuntu@ip-172-31-0-12:~$
+```
+
+
+5. On one of the controller nodes, configure Role Based Access Control (RBAC) so that the `api-server` has necessary authorization for for the `kubelet`.  
+
+Create the **ClusterRole**:  
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+> apiVersion: rbac.authorization.k8s.io/v1
+> kind: ClusterRole
+> metadata:
+>   annotations:
+>     rbac.authorization.kubernetes.io/autoupdate: "true"
+>   labels:
+>     kubernetes.io/bootstrapping: rbac-defaults
+>   name: system:kube-apiserver-to-kubelet
+> rules:
+>   - apiGroups:
+>       - ""
+>     resources:
+>       - nodes/proxy
+>       - nodes/stats
+>       - nodes/log
+>       - nodes/spec
+>       - nodes/metrics
+>     verbs:
+>       - "*"
+> EOF
+clusterrole.rbac.authorization.k8s.io/system:kube-apiserver-to-kubelet created
+ubuntu@ip-172-31-0-10:
+```
+
+Did not seem to generate any new files, this was done on master0  
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl --kubeconfig admin.kubeconfig  apply -f -
+> apiVersion: rbac.authorization.k8s.io/v1
+> kind: ClusterRoleBinding
+> metadata:
+>   name: system:kube-apiserver
+>   namespace: ""
+> roleRef:
+>   apiGroup: rbac.authorization.k8s.io
+>   kind: ClusterRole
+>   name: system:kube-apiserver-to-kubelet
+> subjects:
+>   - apiGroup: rbac.authorization.k8s.io
+>     kind: User
+>     name: kubernetes
+> EOF
+clusterrolebinding.rbac.authorization.k8s.io/system:kube-apiserver created
+ubuntu@ip-172-31-0-10:
+```
+
+
+
+
+
+
+
+## CONFIGURING THE KUBERNETES WORKER NODES  
+
+In all 3 masters
+
+1. Configure RBAC permissions to allow the Kubernetes API Server to access the Kubelet API on each worker node. Access to the Kubelet API is required for retrieving metrics, logs, and executing commands in pods.
+
+``` bash  
+ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+> apiVersion: rbac.authorization.k8s.io/v1
+> kind: ClusterRole
+> metadata:
+>   annotations:
+>     rbac.authorization.kubernetes.io/autoupdate: "true"
+>   labels:
+>     kubernetes.io/bootstrapping: rbac-defaults
+>   name: system:kube-apiserver-to-kubelet
+> rules:
+>   - apiGroups:
+>       - ""
+>     resources:
+>       - nodes/proxy
+>       - nodes/stats
+>       - nodes/log
+>       - nodes/spec
+>       - nodes/metrics
+>     verbs:
+>       - "*"
+> EOF
+clusterrole.rbac.authorization.k8s.io/system:kube-apiserver-to-kubelet unchanged
+ubuntu@ip-172-31-0-10:~$ ls | grep admin
+admin.kubeconfig
+```
+
+
+2. Bind the `system:kube-apiserver-to-kubelet` ClusterRole to the `kubernetes` user so that API server can authenticate successfully to the `kubelets` on the worker nodes:  
+
+``` bash
+ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
+> apiVersion: rbac.authorization.k8s.io/v1
+> kind: ClusterRoleBinding
+> metadata:
+>   name: system:kube-apiserver
+>   namespace: ""
+> roleRef:
+>   apiGroup: rbac.authorization.k8s.io
+>   kind: ClusterRole
+>   name: system:kube-apiserver-to-kubelet
+> subjects:
+>   - apiGroup: rbac.authorization.k8s.io
+>     kind: User
+>     name: kubernetes
+> EOF
+clusterrolebinding.rbac.authorization.k8s.io/system:kube-apiserver unchanged
+ubuntu@ip-172-31-0-10:
+```
+
+In all 3 workers  
+``` bash
+{
+  sudo apt-get update
+  sudo apt-get -y install socat conntrack ipset
+}
+```
+
+
+## QUICK OVERVIEW OF KUBERNETES NETWORK POLICY AND HOW IT IS IMPLEMENTED
+
+DOING THIS ON ALL 3 WORKERS  
+
+Turning off swap not sure if it was one to begin with  
+``` bash
+ubuntu@ip-172-31-0-20:~$ sudo swapon --show
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$ sudo swapoff -a
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+Download binaries for `runc`, `cri-ctl`, and `containerd`  
+``` bash
+ wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc93/runc.amd64 \
+  https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.21.0/crictl-v1.21.0-linux-amd64.tar.gz \
+  https://github.com/containerd/containerd/releases/download/v1.4.4/containerd-1.4.4-linux-amd64.tar.gz 
+```  
+
+``` bash
+ubuntu@ip-172-31-0-20:~$ ls -ls
+total 63076
+    4 -rw-rw-r-- 1 ubuntu ubuntu     1342 Jun  9 01:15 ca.pem
+30472 -rw-rw-r-- 1 ubuntu ubuntu 31201022 Dec  8  2021 containerd-1.4.4-linux-amd64.tar.gz
+18168 -rw-rw-r-- 1 ubuntu ubuntu 18600662 Dec  8  2021 crictl-v1.21.0-linux-amd64.tar.gz
+    4 -rw------- 1 ubuntu ubuntu     1679 Jun  9 01:15 k8s-cluster-from-ground-up-worker-0-key.pem
+    8 -rw------- 1 ubuntu ubuntu     6511 Jun 15 14:49 k8s-cluster-from-ground-up-worker-0.kubeconfig
+    4 -rw-rw-r-- 1 ubuntu ubuntu     1505 Jun  9 01:15 k8s-cluster-from-ground-up-worker-0.pem
+    8 -rw------- 1 ubuntu ubuntu     6342 Jun 15 14:49 kube-proxy.kubeconfig
+14408 -rw-rw-r-- 1 ubuntu ubuntu 14753696 Dec  7  2021 runc.amd64
+ubuntu@ip-172-31-0-20:~$
+```  
+
+
+Configure containerd:  
+``` bash
+ubuntu@ip-172-31-0-20:~$ {
+>   mkdir containerd
+>   tar -xvf crictl-v1.21.0-linux-amd64.tar.gz
+>   tar -xvf containerd-1.4.4-linux-amd64.tar.gz -C containerd
+>   sudo mv runc.amd64 runc
+>   chmod +x  crictl runc
+>   sudo mv crictl runc /usr/local/bin/
+>   sudo mv containerd/bin/* /bin/
+> }
+crictl
+bin/
+bin/containerd
+bin/containerd-shim
+bin/containerd-shim-runc-v2
+bin/containerd-shim-runc-v1
+bin/ctr
+sudo: unable to resolve host ip-172-31-0-20
+sudo: unable to resolve host ip-172-31-0-20
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$fd
+
+ubuntu@ip-172-31-0-20:~$ sudo mkdir -p /etc/containerd/
+sudo: unable to resolve host ip-172-31-0-20
+cat << EOF | sudo tee /etc/containerd/config.toml
+[plugins]
+  [plugins.cri.containerd]
+    snapshotter = "overlayfs"
+    [plugins.cri.containerd.default_runtime]
+      runtime_type = "io.containerd.runtime.v1.linux"
+      runtime_engine = "/usr/local/bin/runc"
+      runtime_root = ""
+EOF
+ubuntu@ip-172-31-0-20:~$ cat << EOF | sudo tee /etc/containerd/config.toml
+> [plugins]
+>   [plugins.cri.containerd]
+>     snapshotter = "overlayfs"
+>     [plugins.cri.containerd.default_runtime]
+>       runtime_type = "io.containerd.runtime.v1.linux"
+>       runtime_engine = "/usr/local/bin/runc"
+>       runtime_root = ""
+> EOF
+sudo: unable to resolve host ip-172-31-0-20
+[plugins]
+  [plugins.cri.containerd]
+    snapshotter = "overlayfs"
+    [plugins.cri.containerd.default_runtime]
+      runtime_type = "io.containerd.runtime.v1.linux"
+      runtime_engine = "/usr/local/bin/runc"
+      runtime_root = ""
+ubuntu@ip-172-31-0-20:~$ cat /etc/containerd/config.toml
+[plugins]
+  [plugins.cri.containerd]
+    snapshotter = "overlayfs"
+    [plugins.cri.containerd.default_runtime]
+      runtime_type = "io.containerd.runtime.v1.linux"
+      runtime_engine = "/usr/local/bin/runc"
+      runtime_root = ""
+ubuntu@ip-172-31-0-20:~$$
+```
+
+Create the `containerd.service` systemd unit file:  
+
+``` bash
+ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /etc/systemd/system/containerd.service
+> [Unit]
+> Description=containerd container runtime
+> Documentation=https://containerd.io
+> After=network.target
+> [Service]
+> ExecStartPre=/sbin/modprobe overlay
+> ExecStart=/bin/containerd
+> Restart=always
+> RestartSec=5
+> Delegate=yes
+> KillMode=process
+> OOMScoreAdjust=-999
+> LimitNOFILE=1048576
+> LimitNPROC=infinity
+> LimitCORE=infinity
+> [Install]
+> WantedBy=multi-user.target
+> EOF
+sudo: unable to resolve host ip-172-31-0-20
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target
+[Service]
+ExecStartPre=/sbin/modprobe overlay
+ExecStart=/bin/containerd
+Restart=always
+RestartSec=5
+Delegate=yes
+KillMode=process
+OOMScoreAdjust=-999
+LimitNOFILE=1048576
+LimitNPROC=infinity
+LimitCORE=infinity
+[Install]
+WantedBy=multi-user.target
+ubuntu@ip-172-31-0-20:~$ cat /etc/systemd/system/containerd.service
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target
+[Service]
+ExecStartPre=/sbin/modprobe overlay
+ExecStart=/bin/containerd
+Restart=always
+RestartSec=5
+Delegate=yes
+KillMode=process
+OOMScoreAdjust=-999
+LimitNOFILE=1048576
+LimitNPROC=infinity
+LimitCORE=infinity
+[Install]
+WantedBy=multi-user.target
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+5. Create directories for to configure `kubelet`, `kube-proxy`, `cni`, and a directory to keep the `kubernetes root ca` file:  
+``` bash
+sudo mkdir -p \
+  /var/lib/kubelet \
+  /var/lib/kube-proxy \
+  /etc/cni/net.d \
+  /opt/cni/bin \
+  /var/lib/kubernetes \
+  /var/run/kubernetes
+```
+
+6. Download and Install CNI
+``` bash
+ubuntu@ip-172-31-0-20:~$ wget -q --show-progress --https-only --timestamping \
+>   https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-amd64-v0.9.1.tgz
+cni-plugins-linux-amd64-v0.9.1.tgz 100%[===============================================================>]  37.93M   110MB/s    in 0.3s
+ubuntu@ip-172-31-0-20:~$ sudo tar -xvf cni-plugins-linux-amd64-v0.9.1.tgz -C /opt/cni/bin/
+sudo: unable to resolve host ip-172-31-0-20
+./
+./macvlan
+./flannel
+./static
+./vlan
+./portmap
+./host-local
+./vrf
+./bridge
+./tuning
+./firewall
+./host-device
+./sbr
+./loopback
+./dhcp
+./ptp
+./ipvlan
+./bandwidth
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+7. Download binaries for `kubectl`, `kube-proxy`, and `kubelet`  
+
+``` bash
+ubuntu@ip-172-31-0-20:~$ wget -q --show-progress --https-only --timestamping \
+>   https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubectl \
+>   https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-proxy \
+>   https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kubelet
+kubectl                            100%[===============================================================>]  44.29M   109MB/s    in 0.4s
+kube-proxy                         100%[===============================================================>]  41.13M   102MB/s    in 0.4s
+kubelet                            100%[===============================================================>] 112.59M   108MB/s    in 1.0s
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+
+8. Install the downloaded binaries
+``` bash
+ubuntu@ip-172-31-0-20:~$ {
+>   chmod +x  kubectl kube-proxy kubelet
+>   sudo mv  kubectl kube-proxy kubelet /usr/local/bin/
+> }
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+## CONFIGURE THE WORKER NODES COMPONENTS  
+
+``` bash
+ubuntu@ip-172-31-0-20:~$ POD_CIDR=$(curl -s http://169.254.169.254/latest/user-data/ \
+>   | tr "|" "\n" | grep "^pod-cidr" | cut -d"=" -f2)
+ubuntu@ip-172-31-0-20:~$ echo "${POD_CIDR}"
+172.20.0.0/24
+
+ubuntu@ip-172-31-0-21:~$ POD_CIDR=$(curl -s http://169.254.169.254/latest/user-data/ \
+>   | tr "|" "\n" | grep "^pod-cidr" | cut -d"=" -f2)
+ubuntu@ip-172-31-0-21:~$ echo "${POD_CIDR}"
+172.20.1.0/24
+
+ubuntu@ip-172-31-0-22:~$ POD_CIDR=$(curl -s http://169.254.169.254/latest/user-data/ \
+>   | tr "|" "\n" | grep "^pod-cidr" | cut -d"=" -f2)
+ubuntu@ip-172-31-0-22:~$ echo "${POD_CIDR}"
+172.20.2.0/24
+ubuntu@ip-172-31-0-22:~$
+```
+
+10. Configure the bridge and loopback networks  
+``` bash
+ubuntu@ip-172-31-0-20:~$ cat > 172-20-bridge.conf <<EOF
+> {
+>     "cniVersion": "0.3.1",
+>     "name": "bridge",
+>     "type": "bridge",
+>     "bridge": "cnio0",
+>     "isGateway": true,
+>     "ipMasq": true,
+>     "ipam": {
+>         "type": "host-local",
+>         "ranges": [
+>           [{"subnet": "${POD_CIDR}"}]
+>         ],
+>         "routes": [{"dst": "0.0.0.0/0"}]
+>     }
+> }
+> EOF
+ubuntu@ip-172-31-0-20:~$ ls | grep bridge
+172-20-bridge.conf
+ubuntu@ip-172-31-0-20:~$ cat > 99-loopback.conf <<EOF
+> {
+>     "cniVersion": "0.3.1",
+>     "type": "loopback"
+> }
+> EOF
+ubuntu@ip-172-31-0-20:~$ ls | grep loop
+99-loopback.conf
+ubuntu@ip-172-31-0-20:~$
+
+```
+
+
+11. Move the files to the network configuration directory:  
+``` bash
+ubuntu@ip-172-31-0-20:~$ sudo mv 172-20-bridge.conf 99-loopback.conf /etc/cni/net.d/
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$ ls /etc/cni/net.d/
+172-20-bridge.conf  99-loopback.conf
+ubuntu@ip-172-31-0-20:~$
+```
+
+12. Store the worker’s name in a variable: *(sample on worker 0)*  
+``` bash
+ubuntu@ip-172-31-0-20:~$ NAME=k8s-cluster-from-ground-up
+ubuntu@ip-172-31-0-20:~$ WORKER_NAME=${NAME}-$(curl -s http://169.254.169.254/latest/user-data/ \
+>   | tr "|" "\n" | grep "^name" | cut -d"=" -f2)
+ubuntu@ip-172-31-0-20:~$ echo "${WORKER_NAME}"
+k8s-cluster-from-ground-up-worker-0
+ubuntu@ip-172-31-0-20:~$
+```  
+
+
+13. Move the certificates and `kubeconfig` file to their respective configuration directories:  
+``` bash
+ubuntu@ip-172-31-0-20:~$ ls -l
+total 87512
+-rw-rw-r-- 1 ubuntu ubuntu     1342 Jun  9 01:15 ca.pem
+-rw-rw-r-- 1 ubuntu ubuntu 39771622 Dec  8  2021 cni-plugins-linux-amd64-v0.9.1.tgz
+drwxrwxr-x 3 ubuntu ubuntu     4096 Aug  7 14:06 containerd
+-rw-rw-r-- 1 ubuntu ubuntu 31201022 Dec  8  2021 containerd-1.4.4-linux-amd64.tar.gz
+-rw-rw-r-- 1 ubuntu ubuntu 18600662 Dec  8  2021 crictl-v1.21.0-linux-amd64.tar.gz
+-rw------- 1 ubuntu ubuntu     1679 Jun  9 01:15 k8s-cluster-from-ground-up-worker-0-key.pem
+-rw------- 1 ubuntu ubuntu     6511 Jun 15 14:49 k8s-cluster-from-ground-up-worker-0.kubeconfig
+-rw-rw-r-- 1 ubuntu ubuntu     1505 Jun  9 01:15 k8s-cluster-from-ground-up-worker-0.pem
+-rw------- 1 ubuntu ubuntu     6342 Jun 15 14:49 kube-proxy.kubeconfig
+ubuntu@ip-172-31-0-20:~$ sudo mv ${WORKER_NAME}-key.pem ${WORKER_NAME}.pem /var/lib/kubelet/
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$ sudo mv ${WORKER_NAME}.kubeconfig /var/lib/kubelet/kubeconfig
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$ sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$ sudo mv ca.pem /var/lib/kubernetes/
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$ ls -l
+total 87484
+-rw-rw-r-- 1 ubuntu ubuntu 39771622 Dec  8  2021 cni-plugins-linux-amd64-v0.9.1.tgz
+drwxrwxr-x 3 ubuntu ubuntu     4096 Aug  7 14:06 containerd
+-rw-rw-r-- 1 ubuntu ubuntu 31201022 Dec  8  2021 containerd-1.4.4-linux-amd64.tar.gz
+-rw-rw-r-- 1 ubuntu ubuntu 18600662 Dec  8  2021 crictl-v1.21.0-linux-amd64.tar.gz
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+
+
+14. Create the `kubelet-config.yaml` file *(example worker0)*  
+``` bash
+ubuntu@ip-172-31-0-20:~$ NAME=k8s-cluster-from-ground-up
+ubuntu@ip-172-31-0-20:~$ WORKER_NAME=${NAME}-$(curl -s http://169.254.169.254/latest/user-data/ \
+>   | tr "|" "\n" | grep "^name" | cut -d"=" -f2)
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "/var/lib/kubernetes/ca.pem"
+authorization:
+  mode: Webhook
+clusterDomain: "cluster.local"
+clusterDNS:
+  - "10.32.0.10"
+resolvConf: "/etc/resolv.conf"
+runtimeRequestTimeout: "15m"
+tlsCertFile: "/var/lib/kubelet/${WORKER_NAME}.pem"
+ubuntu@ip-172-31-0-20:~$ echo "${WORKER_NAME}"
+k8s-cluster-from-ground-up-worker-0
+ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
+> kind: KubeletConfiguration
+> apiVersion: kubelet.config.k8s.io/v1beta1
+> authentication:
+>   anonymous:
+>     enabled: false
+>   webhook:
+>     enabled: true
+>   x509:
+>     clientCAFile: "/var/lib/kubernetes/ca.pem"
+> authorization:
+>   mode: Webhook
+> clusterDomain: "cluster.local"
+> clusterDNS:
+>   - "10.32.0.10"
+> resolvConf: "/etc/resolv.conf"
+> runtimeRequestTimeout: "15m"
+> tlsCertFile: "/var/lib/kubelet/${WORKER_NAME}.pem"
+> tlsPrivateKeyFile: "/var/lib/kubelet/${WORKER_NAME}-key.pem"
+> EOF
+sudo: unable to resolve host ip-172-31-0-20
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "/var/lib/kubernetes/ca.pem"
+authorization:
+  mode: Webhook
+clusterDomain: "cluster.local"
+clusterDNS:
+  - "10.32.0.10"
+resolvConf: "/etc/resolv.conf"
+runtimeRequestTimeout: "15m"
+tlsCertFile: "/var/lib/kubelet/k8s-cluster-from-ground-up-worker-0.pem"
+tlsPrivateKeyFile: "/var/lib/kubelet/k8s-cluster-from-ground-up-worker-0-key.pem"
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+
+## FINAL STEPS  
+
+15. Configure the `kubelet` systemd service  
+``` bash
+ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+> [Unit]
+> Description=Kubernetes Kubelet
+> Documentation=https://github.com/kubernetes/kubernetes
+> After=containerd.service
+> Requires=containerd.service
+> [Service]
+> ExecStart=/usr/local/bin/kubelet \\
+>   --config=/var/lib/kubelet/kubelet-config.yaml \\
+>   --cluster-domain=cluster.local \\
+>   --container-runtime=remote \\
+>   --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
+>   --image-pull-progress-deadline=2m \\
+>   --kubeconfig=/var/lib/kubelet/kubeconfig \\
+>   --network-plugin=cni \\
+>   --register-node=true \\
+>   --v=2
+> Restart=on-failure
+> RestartSec=5
+> [Install]
+> WantedBy=multi-user.target
+> EOF
+sudo: unable to resolve host ip-172-31-0-20
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/kubernetes/kubernetes
+After=containerd.service
+Requires=containerd.service
+[Service]
+ExecStart=/usr/local/bin/kubelet \
+  --config=/var/lib/kubelet/kubelet-config.yaml \
+  --cluster-domain=cluster.local \
+  --container-runtime=remote \
+  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \
+  --image-pull-progress-deadline=2m \
+  --kubeconfig=/var/lib/kubelet/kubeconfig \
+  --network-plugin=cni \
+  --register-node=true \
+  --v=2
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+ubuntu@ip-172-31-0-20:~$
+```
+
+16. Create the `kube-proxy.yaml` file  
+``` bash
+ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
+> kind: KubeProxyConfiguration
+> apiVersion: kubeproxy.config.k8s.io/v1alpha1
+> clientConnection:
+>   kubeconfig: "/var/lib/kube-proxy/kubeconfig"
+> mode: "iptables"
+> clusterCIDR: "172.31.0.0/16"
+> EOF
+sudo: unable to resolve host ip-172-31-0-20
+kind: KubeProxyConfiguration
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+clientConnection:
+  kubeconfig: "/var/lib/kube-proxy/kubeconfig"
+mode: "iptables"
+clusterCIDR: "172.31.0.0/16"
+ubuntu@ip-172-31-0-20:~$
+
+ubuntu@ip-172-31-0-20:~$ ls /var/lib/kube-proxy/kube-proxy-config.yaml
+/var/lib/kube-proxy/kube-proxy-config.yaml
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+
+17. Configure the Kube Proxy systemd service  
+``` bash
+ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
+> [Unit]
+> Description=Kubernetes Kube Proxy
+> Documentation=https://github.com/kubernetes/kubernetes
+> [Service]
+> ExecStart=/usr/local/bin/kube-proxy \\
+>   --config=/var/lib/kube-proxy/kube-proxy-config.yaml
+> Restart=on-failure
+> RestartSec=5
+> [Install]
+> WantedBy=multi-user.target
+> EOF
+sudo: unable to resolve host ip-172-31-0-20
+[Unit]
+Description=Kubernetes Kube Proxy
+Documentation=https://github.com/kubernetes/kubernetes
+[Service]
+ExecStart=/usr/local/bin/kube-proxy \
+  --config=/var/lib/kube-proxy/kube-proxy-config.yaml
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=multi-user.target
+ubuntu@ip-172-31-0-20:~$ ls /etc/systemd/system/kube-proxy.service
+/etc/systemd/system/kube-proxy.service
+ubuntu@ip-172-31-0-20:~$
+```
+
+
+
+
+18. Reload configurations and start both services  
+``` bash
+ubuntu@ip-172-31-0-20:~$ {
+>   sudo systemctl daemon-reload
+>   sudo systemctl enable containerd kubelet kube-proxy
+>   sudo systemctl start containerd kubelet kube-proxy
+> }
+sudo: unable to resolve host ip-172-31-0-20
+sudo: unable to resolve host ip-172-31-0-20
+Created symlink from /etc/systemd/system/multi-user.target.wants/containerd.service to /etc/systemd/system/containerd.service.
+Created symlink from /etc/systemd/system/multi-user.target.wants/kubelet.service to /etc/systemd/system/kubelet.service.
+Created symlink from /etc/systemd/system/multi-user.target.wants/kube-proxy.service to /etc/systemd/system/kube-proxy.service.
+sudo: unable to resolve host ip-172-31-0-20
+ubuntu@ip-172-31-0-20:~$
+```
+
+TEST IT  
+
+``` bash
+hector@hector-Laptop:~/ca-authority$ kubectl get nodes --kubeconfig admin.kubeconfig -o wide
+NAME             STATUS   ROLES    AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION   CONTAINER-RUNTIME
+ip-172-31-0-20   Ready    <none>   6m14s   v1.21.0   172.31.0.20   <none>        Ubuntu 16.04.7 LTS   4.4.0-1128-aws   containerd://1.4.4
+ip-172-31-0-21   Ready    <none>   6m11s   v1.21.0   172.31.0.21   <none>        Ubuntu 16.04.7 LTS   4.4.0-1128-aws   containerd://1.4.4
+ip-172-31-0-22   Ready    <none>   6m8s    v1.21.0   172.31.0.22   <none>        Ubuntu 16.04.7 LTS   4.4.0-1128-aws   containerd://1.4.4
+hector@hector-Laptop:~/ca-authority$
+```
+
+If I shut down the workers status changes to NotReady
