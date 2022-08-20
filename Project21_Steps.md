@@ -207,6 +207,7 @@ VPC > Route tables
 
 
 ## SECURITY GROUPS  
+13. Configure **security groups**:  
 
 Creating the **security group** and store its **ID** in a **variable**  
 ``` bash
@@ -346,7 +347,6 @@ hector@hector-Laptop:~$ aws ec2 authorize-security-group-ingress \
 ```
 
 
-
 VPC > Security > Security groups  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/securitygroups.png)  
 
@@ -357,9 +357,7 @@ VPC > Security > Security groups
 
 
 
-
-
-**Network Load Balancer**  
+14.  Creating a **Network Load Balancer**:  
 ``` bash
 hector@hector-Laptop:~$ LOAD_BALANCER_ARN=$(aws elbv2 create-load-balancer \
 > --name ${NAME} \
@@ -367,13 +365,14 @@ hector@hector-Laptop:~$ LOAD_BALANCER_ARN=$(aws elbv2 create-load-balancer \
 > --scheme internet-facing \
 > --type network \
 > --output text --query 'LoadBalancers[].LoadBalancerArn')
-hector@hector-Laptop:~$
 ```
 
 EC2 > Load Balancing > Load Balancers  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/createlb.png)  
 
-**Target Group**  
+
+15. Creating a **Target Group**:   
+*(For now it will be unhealthy because there are no **targets** yet)*
 ``` bash
 hector@hector-Laptop:~$ TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
 >   --name ${NAME} \
@@ -382,25 +381,25 @@ hector@hector-Laptop:~$ TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
 >   --vpc-id ${VPC_ID} \
 >   --target-type ip \
 >   --output text --query 'TargetGroups[].TargetGroupArn')
-hector@hector-Laptop:~$
 ```
+
 
 EC2 > Load Balancing > Target Groups  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/targetgroups.png)  
 
-**Register targets**: (Just like above, no real targets. You will just put the IP addresses so that, when the nodes become available, they will be used as targets.)  
 
+16.  Registering targets:  
+*(Just like above, no real targets. We will just put the **IP addresses** so that, when the **nodes** become available, they will be used as **targets**.)*
 ``` bash
 hector@hector-Laptop:~$ aws elbv2 register-targets \
 >   --target-group-arn ${TARGET_GROUP_ARN} \
 >   --targets Id=172.31.0.1{0,1,2}
-hector@hector-Laptop:~$
 ```
 
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/targetgroups2.png)  
 
-Create a **listener** to listen for requests and forward to the target nodes on TCP port `6443`  
 
+17. Creating a **listener** to listen for requests and forward to the **target nodes** on **TCP port** `6443`  
 ``` bash
 hector@hector-Laptop:~$ aws elbv2 create-listener \
 > --load-balancer-arn ${LOAD_BALANCER_ARN} \
@@ -414,17 +413,17 @@ hector@hector-Laptop:~$
 
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/addlistener.png)  
 
-**K8s Public Address**  
 
+
+18. Get the Kubernetes Public address
 ``` bash
 hector@hector-Laptop:~$ KUBERNETES_PUBLIC_ADDRESS=$(aws elbv2 describe-load-balancers \
 > --load-balancer-arns ${LOAD_BALANCER_ARN} \
 > --output text --query 'LoadBalancers[].DNSName')
 hector@hector-Laptop:~$
-
+#Just revealing the address
 hector@hector-Laptop:~$ echo $KUBERNETES_PUBLIC_ADDRESS
 k8s-cluster-from-ground-up-a09ad605b1edac82.elb.us-east-1.amazonaws.com
-hector@hector-Laptop:~$
 ```
 
 
