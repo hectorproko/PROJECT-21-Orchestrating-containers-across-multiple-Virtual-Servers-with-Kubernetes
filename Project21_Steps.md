@@ -46,11 +46,10 @@ hector@hector-Laptop:~$
 ```
 
 
-## AWS CLOUD RESOURCES FOR KUBERNETES CLUSTER  
+## Step 1 – Configure Network Infrastructure
+### AWS CLOUD RESOURCES FOR KUBERNETES CLUSTER  
 
 As we already know, we need some compute power to run the **control plane** and the **worker nodes**. In this section, we will provision **EC2 Instances** required to run our **K8s cluster**. We will do **manual** provisioning using `awscli` to have thorough knowledge about the whole setup. After that, we can redo the entire project using Terraform. This manual approach its to solidify our skills and have the opportunity to face more challenges.  
-
-### Step 1 – Configure Network Infrastructure
 
 1. Creating a directory named `k8s-cluster-from-ground-up`:    
 ``` bash
@@ -206,7 +205,7 @@ VPC > Route tables
 
 
 
-## SECURITY GROUPS  
+### SECURITY GROUPS  
 13. Configure **security groups**:  
 
 Creating the **security group** and store its **ID** in a **variable**  
@@ -429,9 +428,10 @@ k8s-cluster-from-ground-up-a09ad605b1edac82.elb.us-east-1.amazonaws.com
 
 
 
-## CREATE COMPUTE RESOURCES
+## STEP 2 - CREATE COMPUTE RESOURCES
 
-**AMI** (needed to install sudo apt install jq) (jq - Command-line JSON processor)  
+1. Getting an **AMI** to create EC2 instances:  
+*(needed to install Command-line JSON processor **jq** `sudo apt install jq`)*
 ``` bash
 hector@hector-Laptop:~$ IMAGE_ID=$(aws ec2 describe-images --owners 099720109477 \
 >   --filters \
@@ -441,10 +441,9 @@ hector@hector-Laptop:~$ IMAGE_ID=$(aws ec2 describe-images --owners 099720109477
 >   | jq -r '.Images|sort_by(.Name)[-1]|.ImageId')
 hector@hector-Laptop:~$ echo $IMAGE_ID
 ami-0b0ea68c435eb488d
-hector@hector-Laptop:~$
 ```
 
-**SSH key-pair**  
+2. Creating **SSH Key-Pair**  
 ``` bash
 hector@hector-Laptop:~$ mkdir -p ssh
 hector@hector-Laptop:~$ aws ec2 create-key-pair \
@@ -453,13 +452,13 @@ hector@hector-Laptop:~$ aws ec2 create-key-pair \
 >   > ssh/${NAME}.id_rsa
 chmod 600 ssh/${NAME}.id_rsa
 hector@hector-Laptop:~$ chmod 600 ssh/${NAME}.id_rsa
-
+#Confirming key was created
 hector@hector-Laptop:~$ ls ssh
 k8s-cluster-from-ground-up.id_rsa
-hector@hector-Laptop:~$
 ```
 
-**EC2 Instances for Controle Plane (Master Nodes)**  
+3. Creating 3 **Master nodes** *(EC2 Instances)* for the **Control Plane**:  
+*(**Note** – Using `t2.micro` instead of `t2.small` as `t2.micro` is covered by AWS free tier)*  
 ``` bash
 hector@hector-Laptop:~$ for i in 0 1 2; do
 >   instance_id=$(aws ec2 run-instances \
