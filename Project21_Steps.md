@@ -7,7 +7,7 @@ Project 21
 ## INSTALL CLIENT TOOLS BEFORE BOOTSTRAPPING THE CLUSTER.
 
 **Install and configure AWS CLI**  
-Did not do anything here, planning to use AwS CLI configured already, Devops Account using Terraform User
+Will use previously configured credentials **AWS CLI** configured already, Devops Account using **Terraform** User
 
 
 **Installing kubectl**  
@@ -48,19 +48,33 @@ hector@hector-Laptop:~$
 
 ## AWS CLOUD RESOURCES FOR KUBERNETES CLUSTER  
 
-`hector@hector-Laptop:~$ mkdir k8s-cluster-from-ground-up`
+As we already know, we need some compute power to run the **control plane** and the **worker nodes**. In this section, we will provision **EC2 Instances** required to run our **K8s cluster**. We will do **manual** provisioning using `awscli` to have thorough knowledge about the whole setup. After that, we can redo the entire project using Terraform. This manual approach its to solidify our skills and have the opportunity to face more challenges.  
+
+
+
+1. Creating a directory named `k8s-cluster-from-ground-up`  
+``` bash
+hector@hector-Laptop:~$ mkdir k8s-cluster-from-ground-up`
+```  
 
 **Virtual Private Cloud – VPC**
+2. Creating a **VPC** and storing the **ID** in a **variable** `VPC_ID`  
 ``` bash
 hector@hector-Laptop:~$ VPC_ID=$(aws ec2 create-vpc \
 > --cidr-block 172.31.0.0/16 \
 > --output text --query 'Vpc.VpcId'
 > )
-hector@hector-Laptop:~$ NAME=k8s-cluster-from-ground-up
+```  
 
+3. **Tag**ging the **VPC** to name it  
+     
+``` bash
+hector@hector-Laptop:~$ NAME=k8s-cluster-from-ground-up #Create variable
 hector@hector-Laptop:~$ aws ec2 create-tags \
 >   --resources ${VPC_ID} \
 >   --tags Key=Name,Value=${NAME}
+```
+
 
 hector@hector-Laptop:~$ aws ec2 modify-vpc-attribute \
 > --vpc-id ${VPC_ID} \
