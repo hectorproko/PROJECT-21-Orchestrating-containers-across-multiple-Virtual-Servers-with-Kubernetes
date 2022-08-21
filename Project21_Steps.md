@@ -577,16 +577,19 @@ hector@hector-Laptop:~/ca-authority$
 
 
 The file defines the following:  
-`CN` – Common name for the authority
-`algo` – the algorithm used for the certificates
-`size` – algorithm size in bits
-`C` – Country
-`L` – Locality (city)
-`ST` – State or province
-`O` – Organization
+`CN` – Common name for the authority  
+`algo` – the algorithm used for the certificates  
+`size` – algorithm size in bits  
+`C` – Country  
+`L` – Locality (city)  
+`ST` – State or province  
+`O` – Organization  
 `OU` – Organizational Unit  
 
-
+The 3 important files here are:  
+`ca.pem` – The Root Certificate  
+`ca-key.pem` – The Private Key  
+`ca.csr` – The Certificate Signing Request  
 
 Generate the **Certificate Signing Request (CSR)**, **Private Key** and the **Certificate** for the Kubernetes Master Nodes.  
 
