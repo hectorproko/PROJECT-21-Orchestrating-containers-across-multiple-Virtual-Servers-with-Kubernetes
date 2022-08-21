@@ -605,7 +605,7 @@ We need to provision **Client/Server** certificates for all the components. It i
     
 In the context of the cluster:    
 **server** are the **master nodes** running the **api-server** component.     
-**client** is every other component that needs to communicate with the **api-server**.  
+**client** is every other ==component== that needs to communicate with the **api-server**.  
 `kube-controller-manager`  
 `kube-scheduler`  
 `etcd`  
