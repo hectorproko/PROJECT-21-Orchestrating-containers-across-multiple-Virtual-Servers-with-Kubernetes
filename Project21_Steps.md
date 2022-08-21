@@ -484,7 +484,8 @@ hector@hector-Laptop:~$ for i in 0 1 2; do
 EC2 > Instances > Instances  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/instances.png)  
 
-**EC2 Instances for Worker Nodes**  
+
+4. Creating 3 **worker nodes** *(EC2 Instances)*:  
 ``` bash
 hector@hector-Laptop:~$ for i in 0 1 2; do
 >   instance_id=$(aws ec2 run-instances \
@@ -505,14 +506,26 @@ hector@hector-Laptop:~$ for i in 0 1 2; do
 >     --resources ${instance_id} \
 >     --tags "Key=Name,Value=${NAME}-worker-${i}"
 > done
-hector@hector-Laptop:~$
 ```
 
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/instances2.png)  
 
-## PREPARE THE SELF-SIGNED CERTIFICATE AUTHORITY AND GENERATE TLS CERTIFICATES  
+## STEP 3 - PREPARE THE SELF-SIGNED CERTIFICATE AUTHORITY AND GENERATE TLS CERTIFICATES  
+The following components running on the **Master node** will require **TLS certificates**.    
+`kube-controller-manager`  
+`kube-scheduler`  
+`etcd`  
+`kube-apiserver`  
+	
+The following components running on the Worker nodes will require TLS certificates.
+	• kubelet
+	• kube-proxy
+	
+Therefore, you will provision a PKI Infrastructure using cfssl which will have a Certificate Authority. The CA will then generate certificates for all the individual components.
 
-**Self-Signed Root Certificate Authority (CA)**  
+
+
+
 
 `hector@hector-Laptop:~$ mkdir ca-authority && cd ca-authority`
 
