@@ -604,8 +604,8 @@ The 3 important files here are:
 We need to provision **Client/Server** certificates for all the components. It is a must to have encrypted communication within the cluster.   
     
 In the context of the cluster:    
-* **server** are the **master nodes** running the **api-server** component.     
-* **client** is every other component that needs to communicate with the **api-server**.
+* **server** are the **master nodes** running the `api-server` component.     
+* **client** is every other component that needs to communicate with the `api-server`.
   * `kube-controller-manager`  
   * `kube-scheduler`  
   * `etcd`  
@@ -613,17 +613,14 @@ In the context of the cluster:
   * `kube-proxy`  
   * `Kubernetes Admin User`  
 
-Now we have a certificate for the **Root CA**, we can begin to request more certificates which the different Kubernetes components, i.e. clients and server, will use to have encrypted communication.
-Remember, the clients here refer to every other component that will communicate with the api-server. These are:
-
-
-**Let us begin with the Kubernetes API-Server Certificate and Private Key**
-The certificate for the Api-server must have IP addresses, DNS names, and a Load Balancer address included. Otherwise, you will have a lot of difficulties connecting to the api-server.
+Now we have a certificate for the **Root CA**, we can begin to request more certificates which the different Kubernetes components *(clients and server)* will use for **encrypted** communication.  
 
 
 
-Generate the **Certificate Signing Request (CSR)**, **Private Key** and the **Certificate** for the Kubernetes Master Nodes.  
+#### Let us begin with the Kubernetes API-Server Certificate and Private Key  
+The certificate for the `Api-server` must have **IP addresses**, **DNS** names, and a **Load Balancer** address included.  
 
+1. Generating the **Certificate Signing Request (CSR)**, **Private Key** and the **Certificate** for the Kubernetes Master Nodes.
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
 > cat > master-kubernetes-csr.json <<EOF
@@ -681,7 +678,13 @@ hector@hector-Laptop:~/ca-authority$
 
 
 
-**Creating the other certificates: for the following Kubernetes components:**  
+#### Creating the other certificates: for the following Kubernetes components:  
+`Scheduler Client Certificate`  
+`Kube Proxy Client Certificate`  
+`Controller Manager Client Certificate`  
+`Kubelet Client Certificates`  
+`K8s admin user Client Certificate`  
+
 
 1. `kube-scheduler` **Client Certificate and Private Key**  
 
