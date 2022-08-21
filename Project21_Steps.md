@@ -686,7 +686,7 @@ hector@hector-Laptop:~/ca-authority$
 `K8s admin user Client Certificate`  
 
 
-1. `kube-scheduler` **Client Certificate and Private Key**  
+2. `kube-scheduler` **Client Certificate and Private Key**  
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
