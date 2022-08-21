@@ -606,12 +606,12 @@ We need to provision **Client/Server** certificates for all the components. It i
 In the context of the cluster:    
 **server** are the **master nodes** running the **api-server** component.     
 **client** is every other component that needs to communicate with the **api-server**.  
-* `kube-controller-manager`
-* `kube-scheduler`
-* `etcd`
-* `kubelet`
-* `kube-proxy`
-* `Kubernetes Admin User`  
+`kube-controller-manager`  
+`kube-scheduler`  
+`etcd`  
+`kubelet`  
+`kube-proxy`  
+`Kubernetes Admin User`    
   
 
 Now we have a certificate for the **Root CA**, we can begin to request more certificates which the different Kubernetes components, i.e. clients and server, will use to have encrypted communication.
