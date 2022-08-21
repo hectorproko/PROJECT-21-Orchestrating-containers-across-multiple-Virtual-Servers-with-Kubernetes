@@ -511,26 +511,25 @@ hector@hector-Laptop:~$ for i in 0 1 2; do
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/instances2.png)  
 
 ## STEP 3 - PREPARE THE SELF-SIGNED CERTIFICATE AUTHORITY AND GENERATE TLS CERTIFICATES  
-The following components running on the **Master node** will require **TLS certificates**.    
+The following components running on the **Master nodes** require **TLS certificates**.    
 `kube-controller-manager`  
 `kube-scheduler`  
 `etcd`  
 `kube-apiserver`  
 	
-The following components running on the Worker nodes will require TLS certificates.
-	• kubelet
-	• kube-proxy
+The following components running on the **Worker nodes** will require **TLS certificates**.
+`kubelet`  
+`kube-proxy`  
 	
-Therefore, you will provision a PKI Infrastructure using cfssl which will have a Certificate Authority. The CA will then generate certificates for all the individual components.
+Therefore, we will provision a **PKI** *(Public key infrastructure)* using `cfssl` which will have a **Certificate Authority**. The **CA** will then generate certificates for all the individual components.  
 
-
-
-
-
-`hector@hector-Laptop:~$ mkdir ca-authority && cd ca-authority`
-
+Creating a directory and `cd` into it:
 ``` bash
-hector@hector-Laptop:~/ca-authority$ ls
+hector@hector-Laptop:~$ mkdir ca-authority && cd ca-authority
+```
+
+Generating the **CA** configuration file, **Root Certificate**, and **Private key**:  
+``` bash
 hector@hector-Laptop:~/ca-authority$ {
 > cat > ca-config.json <<EOF
 > {
@@ -575,6 +574,18 @@ hector@hector-Laptop:~/ca-authority$ {
 2022/06/08 14:17:28 [INFO] signed certificate with serial number 595938750693050736385532716166856798624679790798
 hector@hector-Laptop:~/ca-authority$
 ```
+
+
+The file defines the following:  
+`CN` – Common name for the authority
+`algo` – the algorithm used for the certificates
+`size` – algorithm size in bits
+`C` – Country
+`L` – Locality (city)
+`ST` – State or province
+`O` – Organization
+`OU` – Organizational Unit  
+
 
 
 Generate the **Certificate Signing Request (CSR)**, **Private Key** and the **Certificate** for the Kubernetes Master Nodes.  
@@ -631,6 +642,10 @@ hector@hector-Laptop:~/ca-authority$ {
 2022/06/08 14:23:17 [INFO] signed certificate with serial number 547649748408320050103723158040590516113896364808
 hector@hector-Laptop:~/ca-authority$
 ```
+
+
+
+
 
 **Creating the other certificates: for the following Kubernetes components:**  
 
