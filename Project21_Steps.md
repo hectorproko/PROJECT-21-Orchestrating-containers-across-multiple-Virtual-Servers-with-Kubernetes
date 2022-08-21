@@ -601,14 +601,15 @@ The 3 important files here are:
 
 
 ### Generating TLS Certificates For Client and Server  
-We need to provision **Client/Server** certificates for all the components. It is a must to have encrypted communication within the cluster.     
+We need to provision **Client/Server** certificates for all the components. It is a must to have encrypted communication within the cluster.   
+    
 In the context of the cluster:    
 `server` are the **master nodes** running the **api-server** component.     
 `client` is every other component that needs to communicate with the **api-server**.  
-
-Now we have a certificate for the Root CA, we can then begin to request more certificates which the different Kubernetes components, i.e. clients and server, will use to have encrypted communication.
+  
+Now we have a certificate for the **Root CA**, we can begin to request more certificates which the different Kubernetes components, i.e. clients and server, will use to have encrypted communication.
 Remember, the clients here refer to every other component that will communicate with the api-server. These are:
-	• kube-controller-manager
+ kube-controller-manager
 	• kube-scheduler
 	• etcd
 	• kubelet
