@@ -678,12 +678,12 @@ hector@hector-Laptop:~/ca-authority$
 
 
 
-#### Creating the other certificates: for the following Kubernetes components:  
-`Scheduler Client Certificate`  
-`Kube Proxy Client Certificate`  
-`Controller Manager Client Certificate`  
-`Kubelet Client Certificates`  
-`K8s admin user Client Certificate`  
+#### Creating the other *(Client)* certificates: for the following Kubernetes components:  
+`Scheduler`  
+`Kube Proxye`  
+`Controller Manager`  
+`Kubelet`  
+`K8s admin user`  
 
 
 2. `kube-scheduler` **Client Certificate and Private Key**  
@@ -726,6 +726,7 @@ of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser Forum (https://ca
 specifically, section 10.2.3 ("Information Requirements").
 hector@hector-Laptop:~/ca-authority$
 ```
+*We can ignore the warning message*  
 
 3. `kube-proxy` **Client Certificate and Private Key**  
 
@@ -806,7 +807,14 @@ hector@hector-Laptop:~/ca-authority$
 ```
 
 5. `kubelet` **Client Certificate and Private Key**  
-   
+
+<!--Similar to how you configured the api-server's certificate,--> 
+Kubernetes requires that the **hostname** of each **worker node** is included in the **client certificate**.  
+
+Also, Kubernetes uses a special-purpose authorization mode called **Node Authorizer**, that specifically authorizes **API requests** made by kubelet services. In order to be authorized by the **Node Authorizer**, kubelets must use a credential that identifies them as being in the `system:nodes` group, with a username of `system:node:<nodeName>`. Hence the `"CN": "system:node:${instance_hostname}"`, in the below code.
+
+Therefore, the certificate to be created must comply to these requirements. In the below example, there are 3 **worker nodes**, hence we will use bash to loop through a list of the worker nodes’ **hostnames**, and based on each index, the respective **Certificate Signing Request** *(**CSR**)*, **private key** and **client certificates** will be generated.
+
 ``` bash
 hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
 >   instance="${NAME}-worker-${i}"
@@ -864,7 +872,7 @@ hector@hector-Laptop:~/ca-authority$
 
 6. `kubernetes admin user's` **Client Certificate and Private Key**  
 ``` bash
-   hector@hector-Laptop:~/ca-authority$ {
+hector@hector-Laptop:~/ca-authority$ {
 > cat > admin-csr.json <<EOF
 > {
 >   "CN": "admin",
@@ -900,12 +908,12 @@ websites. For more information see the Baseline Requirements for the Issuance an
 of Publicly-Trusted Certificates, v.1.1.6, from the CA/Browser Forum (https://cabforum.org);
 specifically, section 10.2.3 ("Information Requirements").
 hector@hector-Laptop:~/ca-authority$
-   ```
+```
 
 
 7. In addition
 ``` bash
-   hector@hector-Laptop:~/ca-authority$ {
+hector@hector-Laptop:~/ca-authority$ {
 > cat > service-account-csr.json <<EOF
 > {
 >   "CN": "service-accounts",
