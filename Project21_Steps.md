@@ -910,8 +910,12 @@ specifically, section 10.2.3 ("Information Requirements").
 hector@hector-Laptop:~/ca-authority$
 ```
 
+Another pair of certificate and private key we need to generate is for the **Token Controller** (a part of the **Kubernetes Controller Manager** `kube-controller-manager` responsible for generating and signing service account tokens which are used by pods or other resources to establish connectivity to the `api-server`.   
 
-7. In addition
+[Service Accounts official documentation](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/) 
+
+
+7. We create the last set of files, and we are done with **PKI**s
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
 > cat > service-account-csr.json <<EOF
@@ -955,9 +959,15 @@ hector@hector-Laptop:~/ca-authority$
 
 
 
-## DISTRIBUTING THE CLIENT AND SERVER CERTIFICATES
+## STEP 4 – DISTRIBUTING THE CLIENT AND SERVER CERTIFICATES
 
-**Distributing the Client and Server Certificates**  
+Now we send all the client and server **certificates** to their respective **instances**.  
+
+Beginning with the **worker nodes** we will copy the following files securely using `scp` utility  
+*	Root CA certificate – ca.pem  
+*	X509 Certificate for each worker node  
+*	Private Key of the certificate for each worker node  
+
 ``` bash
 hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
 >   instance="${NAME}-worker-${i}"
@@ -989,10 +999,9 @@ ca.pem                                                                          
 k8s-cluster-from-ground-up-worker-2-key.pem                                     100% 1675    28.7KB/s   00:00
 k8s-cluster-from-ground-up-worker-2.pem                                         100% 1505    24.1KB/s   00:00
 hector@hector-Laptop:~/ca-authority$
-
 ```
 
-**Master or Controller node:** – Note that only the `api-server` related files will be sent over to the master nodes.  
+**Master or Controller node:** *(Note that only the `api-server` related files will be sent over to the master nodes)*       
 ``` bash
 hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
 > instance="${NAME}-master-${i}" \
@@ -1035,6 +1044,14 @@ master-kubernetes.pem                                                           
 master-kubernetes-key.pem                                                       100% 1679    27.3KB/s   00:00
 hector@hector-Laptop:~/ca-authority$
 ```
+Client certificates from:  
+`kube-proxy`  
+`kube-controller-manager`  
+`kube-scheduler`  
+`kubelet`  
+will be used to generate **client authentication configuration files** later.  
+
+
 
 
 ## USE `KUBECTL` TO GENERATE KUBERNETES CONFIGURATION FILES FOR AUTHENTICATION
