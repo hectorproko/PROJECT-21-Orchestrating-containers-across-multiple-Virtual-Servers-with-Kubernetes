@@ -1044,6 +1044,7 @@ master-kubernetes.pem                                                           
 master-kubernetes-key.pem                                                       100% 1679    27.3KB/s   00:00
 hector@hector-Laptop:~/ca-authority$
 ```
+
 **Client certificates** from:  
 `kube-proxy`  
 `kube-controller-manager`  
@@ -1058,9 +1059,24 @@ will be used to generate **client authentication configuration files** later.
 
 
 
-## USE `KUBECTL` TO GENERATE KUBERNETES CONFIGURATION FILES FOR AUTHENTICATION
+## STEP 5 - USE `KUBECTL` TO GENERATE KUBERNETES CONFIGURATION FILES FOR AUTHENTICATION
 
-1. Generate the **kubelet** kubeconfig file  
+ In this step we will create some files known as **kubeconfig**, which enable **Kubernetes clients** to *locate* and *authenticate* to the **Kubernetes API Servers**.  
+
+We will need a **client tool** called `kubectl` to do this.   
+
+Now we generate **kubeconfig** files for the `kubelet`, `kube-controller-manager`, `kube-proxy`, and `kube-scheduler` clients and then the `admin user`.  
+
+First, we create a few **environment variables** for reuse by multiple commands.  
+``` bash
+KUBERNETES_API_SERVER_ADDRESS=$(aws elbv2 describe-load-balancers --load-balancer-arns ${LOAD_BALANCER_ARN} --output text --query 'LoadBalancers[].DNSName')
+```  
+
+1. Generating the `kubelet` **kubeconfig file**    
+
+Because each **certificate** has the node’s **DNS name** or **IP Address** configured at the time the **certificate** was generated, the **client certificate** configured for each node *(running `kubelet`)* is used to generate the **kubeconfig**. It also ensures that the appropriate authorization is applied to that node through the **Node Authorizer**
+
+We run the command below in the directory where all the certificates were generated. In my case `ca-authority`  
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ KUBERNETES_API_SERVER_ADDRESS=$(aws elbv2 describe-load-balancers --load-balancer-arns ${LOAD_BALANCER_ARN} --output text --query 'LoadBalancers[].DNSName')
@@ -1100,6 +1116,8 @@ Context "default" created.
 Switched to context "default".
 hector@hector-Laptop:~/ca-authority$
 ```
+
+Using `ls` we see newly generate **kubeconfig** files     
 ``` bash
 hector@hector-Laptop:~/ca-authority$ ls -ltr *.kubeconfig
 -rw------- 1 hector hector 6511 Jun  8 21:25 k8s-cluster-from-ground-up-worker-0.kubeconfig
@@ -1108,7 +1126,18 @@ hector@hector-Laptop:~/ca-authority$ ls -ltr *.kubeconfig
 hector@hector-Laptop:~/ca-authority$
 ```
 
-2. Generate the **kube-proxy** kubeconfig  
+
+
+
+
+**Kubeconfig** file is used to organize information about clusters, users, namespaces and authentication mechanisms. By default, `kubectl` looks for a file named `config` in the `$HOME/.kube` directory. You can specify other **kubeconfig** files by setting the `KUBECONFIG` **environment variable** or by setting the `--kubeconfig` **flag**.  
+
+[kubeconfig files documentation](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/)  
+
+Context *(my case **default**)* part of **kubeconfig** file defines three main parameters: **cluster**, **namespace** and **user**. We can save several different contexts with any convenient names and switch between them when needed.  
+`kubectl config use-context <context-name>`
+
+2. Generating the `kube-proxy` **kubeconfig** 
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
@@ -1135,7 +1164,9 @@ Switched to context "default".
 hector@hector-Laptop:~/ca-authority$
 ```
 
-3. Generate the **Kube-Controller-Manager** kubeconfig  
+3. Generate the `Kube-Controller-Manager` **kubeconfig**  
+
+The `--server` is set to use `127.0.0.1` because this component runs on the `API-Server` so there is no point **routing** through the **Load Balancer**.
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
@@ -1162,7 +1193,7 @@ Switched to context "default".
 hector@hector-Laptop:~/ca-authority$
 ```
 
-4. Generating the **Kube-Scheduler** Kubeconfig  
+4. Generating the `Kube-Scheduler` **Kubeconfig**  
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
@@ -1190,7 +1221,7 @@ Switched to context "default".
 hector@hector-Laptop:~/ca-authority$
 ```
 
-5. Finally, generate the kubeconfig file for the **admin user**
+5. Finally, generate the **kubeconfig** file for the `admin user`
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ {
@@ -1217,9 +1248,9 @@ Switched to context "default".
 hector@hector-Laptop:~/ca-authority$
 ```
 
-Distribute the files to their respective servers, using `scp` and a for loop  
+Distributing the files to their respective servers, using `scp` and a `for loop`    
 
-**Worker**  
+**Worker**    
 ``` bash
 hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
 >   instance="${NAME}-worker-${i}"
@@ -1236,8 +1267,9 @@ kube-proxy.kubeconfig                                                           
 k8s-cluster-from-ground-up-worker-2.kubeconfig                                                              100% 6507   105.6KB/s   00:00
 kube-proxy.kubeconfig                                                                                       100% 6342    96.1KB/s   00:00
 hector@hector-Laptop:~/ca-authority$
-
 ```
+
+
 **Master**  
 ``` bash
 hector@hector-Laptop:~/ca-authority$ for i in 0 1 2; do
@@ -1257,7 +1289,13 @@ kube-scheduler.kubeconfig                                                       
 hector@hector-Laptop:~/ca-authority$
 ```
 
-## PREPARE THE ETCD DATABASE FOR ENCRYPTION AT REST
+## STEP 6 - PREPARE THE ETCD DATABASE FOR ENCRYPTION AT REST
+
+Kubernetes uses etcd (A distributed key value store) to store variety of data which includes the cluster state, application configurations, and secrets. By default, the data that is being persisted to the disk is not encrypted. Hence, it is a security risk for Kubernetes that needs to be addressed. To mitigate this risk, we must prepare to encrypt etcd at rest.   
+
+*"**At rest**" means data that is stored and persists on a disk    "**in-flight**" or "**in transit**" refers to data that is being transferred over the network, this encryption is done through **TLS**.* 
+
+
 ``` bash
 hector@hector-Laptop:~/ca-authority$ ETCD_ENCRYPTION_KEY=$(head -c 64 /dev/urandom | base64)
 hector@hector-Laptop:~/ca-authority$ echo $ETCD_ENCRYPTION_KEY
