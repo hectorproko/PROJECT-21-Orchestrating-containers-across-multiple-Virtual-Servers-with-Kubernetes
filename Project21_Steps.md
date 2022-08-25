@@ -1044,12 +1044,16 @@ master-kubernetes.pem                                                           
 master-kubernetes-key.pem                                                       100% 1679    27.3KB/s   00:00
 hector@hector-Laptop:~/ca-authority$
 ```
-Client certificates from:  
+**Client certificates** from:  
 `kube-proxy`  
 `kube-controller-manager`  
 `kube-scheduler`  
 `kubelet`  
 will be used to generate **client authentication configuration files** later.  
+
+
+
+
 
 
 
