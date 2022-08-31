@@ -1458,7 +1458,7 @@ etcd-v3.4.15-linux-amd64.tar.gz                  100%[==========================
 ubuntu@ip-172-31-0-10:~$
 ```
 
-1. **Extracting** and **installing** the `etcd` server and the `etcdctl` command line utility: *(did it in all 3 master instances)*
+3. **Extracting** and **installing** the `etcd` server and the `etcdctl` command line utility: *(did it in all 3 master instances)*
 
 Run  
 ``` bash
