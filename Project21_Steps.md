@@ -1324,6 +1324,7 @@ hector@hector-Laptop:~/ca-authority$ ls | grep encryption
 encryption-config.yaml
 ```
 
+Looking inside the newly created `encryption-config.yaml`  
 ``` bash
 hector@hector-Laptop:~/ca-authority$ bat encryption-config.yaml
 ───────┬──────────────────────────────────────────────────────────────────────────────────────
@@ -1345,7 +1346,7 @@ hector@hector-Laptop:~/ca-authority$ bat encryption-config.yaml
 hector@hector-Laptop:~/ca-authority$
 ```
 
-Send the encryption file to the **Controller nodes** using `scp` and a `for` loop.  
+Sending the encryption file to the **Controller nodes** using `scp` and a `for` loop.  
 
 **Master**:
 ``` bash
@@ -1363,15 +1364,16 @@ encryption-config.yaml                                                          
 hector@hector-Laptop:~/ca-authority$
 ```
 
+**Bootstrap `etcd` cluster**
+The primary purpose of the `etcd` component is to **store** the **state** of the **cluster**. Kubernetes itself is **stateless**. Therefore, all its **stateful** data will persist in `etcd`. Since Kubernetes is a **distributed system** – it needs a distributed storage to keep persistent data in it and `etcd` fits the purpose. All K8s **cluster configurations** are stored in the form of **key value pairs** in `etcd`, it also stores the **actual** and **desired** states of the cluster. `etcd` cluster looks for changes made on one instance and almost instantly replicate those changes to the rest of the instances, so all of them will be always reconciled.  
 
-SSH into the controller server  
+
+
+1. **SSH** into the controller server  
+
+The **.pem** key we need `k8s-cluster-from-ground-up.id_rsa` is in directory `~/.ssh`  
 ``` bash
 hector@hector-Laptop:~/ca-authority$ cd ~/.ssh/
-hector@hector-Laptop:~/.ssh$
-```
-
-The **.pem** key we need k8s-cluster-from-ground-up.id_rsa is in a **ssh** folder in home directory  
-``` bash
 hector@hector-Laptop:~/ssh$ pwd
 /home/hector/ssh
 hector@hector-Laptop:~/ssh$ ls
@@ -1381,7 +1383,13 @@ hector@hector-Laptop:~/ssh$
 
 1. SSH into the controller server
 
-**Master1** (after logged in checking files)
+**Master1** *(after I logged in, checked files)*
+``` bash
+master_1_ip=$(aws ec2 describe-instances \
+--filters "Name=tag:Name,Values=${NAME}-master-0" \
+--output text --query 'Reservations[].Instances[].PublicIpAddress')
+ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${master_1_ip}
+```
 ``` bash
 ubuntu@ip-172-31-0-10:~$ ls -l
 total 44
@@ -1399,6 +1407,13 @@ ubuntu@ip-172-31-0-10:~$
 
 **Master2**
 ``` bash
+master_2_ip=$(aws ec2 describe-instances \
+--filters "Name=tag:Name,Values=${NAME}-master-1" \
+--output text --query 'Reservations[].Instances[].PublicIpAddress')
+ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${master_2_ip}
+```
+
+``` bash
 ubuntu@ip-172-31-0-11:~$ ls -l
 total 44
 -rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 ca-key.pem
@@ -1415,6 +1430,13 @@ ubuntu@ip-172-31-0-11:~$
 
 **Master3**
 ``` bash
+master_3_ip=$(aws ec2 describe-instances \
+--filters "Name=tag:Name,Values=${NAME}-master-2" \
+--output text --query 'Reservations[].Instances[].PublicIpAddress')
+ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${master_3_ip}
+```
+
+``` bash
 ubuntu@ip-172-31-0-12:~$ ls -l
 total 44
 -rw------- 1 ubuntu ubuntu 1679 Jun  9 01:17 ca-key.pem
@@ -1430,7 +1452,7 @@ ubuntu@ip-172-31-0-12:~$
 ```
 
 
-2. Download and install **etcd**  
+1. Downloading and installing `etcd`
 ``` bash
 ubuntu@ip-172-31-0-10:~$ wget -q --show-progress --https-only --timestamping \
 >   " https://github.com/etcd-io/etcd/releases/download/v3.4.15/etcd-v3.4.15-linux-amd64.tar.gz"
