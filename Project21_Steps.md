@@ -1469,7 +1469,8 @@ tar -xvf etcd-v3.4.15-linux-amd64.tar.gz && sudo mv etcd-v3.4.15-linux-amd64/etc
 ubuntu@ip-172-31-0-10:~/etcd-v3.4.15-linux-amd64$ ls /usr/local/bin/
 etcd  etcdctl
 ```
-4. Configure the **etcd** server (3 master instances done)
+
+4. Configure the **etcd** server *(did it in all 3 master instances)*
 ``` bash
 ubuntu@ip-172-31-0-10:~$ {
 >   sudo mkdir -p /etc/etcd /var/lib/etcd
@@ -1483,10 +1484,14 @@ ubuntu@ip-172-31-0-10:~$ ls /etc/etcd/
 ca.pem  master-kubernetes-key.pem  master-kubernetes.pem
 ```
 
-5. The instance internal IP address will be used to serve client requests and communicate with **etcd** cluster peers. Retrieve the internal IP address for the current compute instance:
-`export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)`
+5. The instance's **internal IP** address will be used to serve client requests and communicate with `etcd` cluster peers.  
 
-6. Each **etcd** member must have a unique name within an **etcd** cluster. Set the **etcd** name to node Private IP address so it will uniquely identify the machine:
+Retrieving the **internal IP** address for the current compute instance:
+``` bash
+export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+```
+
+6. Each `etcd` member must have a unique name within an `etcd` cluster. Set the `etcd` name to the node **Private IP** address so it will uniquely identify the machine:
 
 ``` bash
 ubuntu@ip-172-31-0-11:~$ ETCD_NAME=$(curl -s http://169.254.169.254/latest/user-data/ \
