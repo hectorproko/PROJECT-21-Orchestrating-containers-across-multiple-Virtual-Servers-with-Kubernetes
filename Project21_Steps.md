@@ -1450,7 +1450,7 @@ ubuntu@ip-172-31-0-12:~$
 ```
 
 
-1. Downloading and installing `etcd`
+2. Downloading and installing `etcd`
 ``` bash
 ubuntu@ip-172-31-0-10:~$ wget -q --show-progress --https-only --timestamping \
 >   " https://github.com/etcd-io/etcd/releases/download/v3.4.15/etcd-v3.4.15-linux-amd64.tar.gz"
@@ -1458,8 +1458,13 @@ etcd-v3.4.15-linux-amd64.tar.gz                  100%[==========================
 ubuntu@ip-172-31-0-10:~$
 ```
 
-3. Extract and install the etcd server and the etcdctl command line utility: ( 3 master instances done)
-`tar -xvf etcd-v3.4.15-linux-amd64.tar.gz && sudo mv etcd-v3.4.15-linux-amd64/etcd* /usr/local/bin/`
+1. **Extracting** and **installing** the `etcd` server and the `etcdctl` command line utility: *(did it in all 3 master instances)*
+
+Run  
+``` bash
+tar -xvf etcd-v3.4.15-linux-amd64.tar.gz && sudo mv etcd-v3.4.15-linux-amd64/etcd* /usr/local/bin/`
+```
+
 ``` bash
 ubuntu@ip-172-31-0-10:~/etcd-v3.4.15-linux-amd64$ ls /usr/local/bin/
 etcd  etcdctl
