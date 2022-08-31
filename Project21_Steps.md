@@ -1291,19 +1291,20 @@ hector@hector-Laptop:~/ca-authority$
 
 ## STEP 6 - PREPARE THE ETCD DATABASE FOR ENCRYPTION AT REST
 
-Kubernetes uses etcd (A distributed key value store) to store variety of data which includes the cluster state, application configurations, and secrets. By default, the data that is being persisted to the disk is not encrypted. Hence, it is a security risk for Kubernetes that needs to be addressed. To mitigate this risk, we must prepare to encrypt etcd at rest.   
+Kubernetes uses `etcd` *(A distributed key value store)* to store variety of data which includes the **cluster state**, application **configurations**, and **secrets**. By default, the data that is being persisted to the disk is not **encrypted**. To mitigate this risk, we must prepare to **encrypt** `etcd` at rest.   
 
 *"**At rest**" means data that is stored and persists on a disk    "**in-flight**" or "**in transit**" refers to data that is being transferred over the network, this encryption is done through **TLS**.* 
 
-
+**Generating the encryption key and encode it using** `base64`  
 ``` bash
 hector@hector-Laptop:~/ca-authority$ ETCD_ENCRYPTION_KEY=$(head -c 64 /dev/urandom | base64)
+#See the output generated
 hector@hector-Laptop:~/ca-authority$ echo $ETCD_ENCRYPTION_KEY
 ibbYlKxF8d9rfVJrNB3qGuSvw8JPtNw1dnEOHpYxSppc2uRz91buFt9iF1VTYgSkXnlW73y9dReR saUXK3gDVw==
 hector@hector-Laptop:~/ca-authority$
 ```
 
-Create an `encryption-config.yaml` file as documented officially by kubernetes
+Creating an `encryption-config.yaml` file [Kubernetes Documentation](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/#understanding-the-encryption-at-rest-configuration)  
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ cat > encryption-config.yaml <<EOF
