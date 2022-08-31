@@ -1371,7 +1371,7 @@ The primary purpose of the `etcd` component is to **store** the **state** of the
 
 1. **SSH** into the controller server  
 
-The **.pem** key we need `k8s-cluster-from-ground-up.id_rsa` is in directory `~/.ssh`  
+The key we need `k8s-cluster-from-ground-up.id_rsa` is in directory `~/.ssh`  
 ``` bash
 hector@hector-Laptop:~/ca-authority$ cd ~/.ssh/
 hector@hector-Laptop:~/ssh$ pwd
@@ -1380,8 +1380,6 @@ hector@hector-Laptop:~/ssh$ ls
 k8s-cluster-from-ground-up.id_rsa
 hector@hector-Laptop:~/ssh$
 ```
-
-1. SSH into the controller server
 
 **Master1** *(after I logged in, checked files)*
 ``` bash
