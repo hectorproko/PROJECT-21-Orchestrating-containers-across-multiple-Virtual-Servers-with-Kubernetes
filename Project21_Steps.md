@@ -1863,19 +1863,22 @@ sudo systemctl status kube-scheduler
 
 1. To get the cluster details run:
 
+`kubectl cluster-info  --kubeconfig admin.kubeconfig`
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/clusterinfo.png) 
+*(No need to use --kubeconfig admin.kubeconfig I already replaced .kube/config with it making it default)*
 
-``` bash
-hector@hector-Laptop:~/ca-authority$ kubectl cluster-info  --kubeconfig admin.kubeconfig
+<!-- 
+``` bash 
+<!-- hector@hector-Laptop:~/ca-authority$ kubectl cluster-info  --kubeconfig admin.kubeconfig
 Kubernetes control plane is running at https://k8s-cluster-from-ground-up-a09ad605b1edac82.elb.us-east-1.amazonaws.com:6443
 
 To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
 hector@hector-Laptop:~/ca-authority$
-```
-*(No need to use --kubeconfig admin.kubeconfig I already replaced .kube/config with it making it default)*
+``` -->
 
 
-2. To get the current namespaces:
+
+1. To get the current namespaces:
 ``` bash
 hector@hector-Laptop:~/ca-authority$ kubectl get namespaces --kubeconfig admin.kubeconfig
 NAME              STATUS   AGE
