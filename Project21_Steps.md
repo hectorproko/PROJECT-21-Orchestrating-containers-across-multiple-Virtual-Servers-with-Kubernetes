@@ -1863,7 +1863,8 @@ sudo systemctl status kube-scheduler
 
 1. To get the cluster details run:
 
-clusterinfo.png
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/clusterinfo.png) 
+
 ``` bash
 hector@hector-Laptop:~/ca-authority$ kubectl cluster-info  --kubeconfig admin.kubeconfig
 Kubernetes control plane is running at https://k8s-cluster-from-ground-up-a09ad605b1edac82.elb.us-east-1.amazonaws.com:6443
