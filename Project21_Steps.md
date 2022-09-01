@@ -1410,7 +1410,6 @@ master_2_ip=$(aws ec2 describe-instances \
 --output text --query 'Reservations[].Instances[].PublicIpAddress')
 ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${master_2_ip}
 ```
-
 ``` bash
 ubuntu@ip-172-31-0-11:~$ ls -l
 total 44
@@ -1433,7 +1432,6 @@ master_3_ip=$(aws ec2 describe-instances \
 --output text --query 'Reservations[].Instances[].PublicIpAddress')
 ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${master_3_ip}
 ```
-
 ``` bash
 ubuntu@ip-172-31-0-12:~$ ls -l
 total 44
@@ -1464,13 +1462,12 @@ ubuntu@ip-172-31-0-10:~$
 #run  
 tar -xvf etcd-v3.4.15-linux-amd64.tar.gz && sudo mv etcd-v3.4.15-linux-amd64/etcd* /usr/local/bin/`
 ```
-
 ``` bash
 ubuntu@ip-172-31-0-10:~/etcd-v3.4.15-linux-amd64$ ls /usr/local/bin/
 etcd  etcdctl
 ```
 
-4. Configure the **etcd** server *(did it in all 3 master instances)*
+4. Configure the `etcd` server *(did it in all 3 master instances)*
 ``` bash
 ubuntu@ip-172-31-0-10:~$ {
 >   sudo mkdir -p /etc/etcd /var/lib/etcd
@@ -1491,18 +1488,19 @@ Retrieving the **internal IP** address for the current compute instance:
 export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 ```
 
-6. Each `etcd` member must have a unique name within an `etcd` cluster. Set the `etcd` name to the node **Private IP** address so it will uniquely identify the machine:
+6. Each `etcd` member must have a unique name within an `etcd` cluster. Set the `etcd` name to the node **Private IP** address so it will uniquely identify the machine:  
 
 ``` bash
 ubuntu@ip-172-31-0-11:~$ ETCD_NAME=$(curl -s http://169.254.169.254/latest/user-data/ \
 >   | tr "|" "\n" | grep "^name" | cut -d"=" -f2)
 ubuntu@ip-172-31-0-11:~$ echo ${ETCD_NAME}
-master-1 #example of one done
+master-1 
 ubuntu@ip-172-31-0-11:~$
 ```
+*This was done on all 3 masters*
 
-
-7. Create the etcd.service systemd unit file: (in 3 masters)
+7. Create the `etcd.service` systemd unit file:  
+   *This was done on all 3 masters*
 
 ``` bash
 ubuntu@ip-172-31-0-10:/etc/systemd/system$ ls | grep etcd
@@ -1539,7 +1537,7 @@ ubuntu@ip-172-31-0-10:/etc/systemd/system$
 ```
 
 
-8. Start and enable the **etcd** Server
+1. Start and enable the **etcd** Server
 ``` bash
 ubuntu@ip-172-31-0-12:~$ {
 > sudo systemctl daemon-reload
@@ -2543,3 +2541,6 @@ hector@hector-Laptop:~/ca-authority$
 ```
 
 If I shut down the workers status changes to NotReady
+
+
+fd
