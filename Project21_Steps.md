@@ -1489,6 +1489,7 @@ export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 ```
 
 6. Each `etcd` member must have a unique name within an `etcd` cluster. Set the `etcd` name to the node **Private IP** address so it will uniquely identify the machine:  
+*Done on all 3 masters* 
 
 ``` bash
 ubuntu@ip-172-31-0-11:~$ ETCD_NAME=$(curl -s http://169.254.169.254/latest/user-data/ \
@@ -1497,10 +1498,10 @@ ubuntu@ip-172-31-0-11:~$ echo ${ETCD_NAME}
 master-1 
 ubuntu@ip-172-31-0-11:~$
 ```
-*This was done on all 3 masters*
+
 
 7. Create the `etcd.service` systemd unit file:  
-   *This was done on all 3 masters*
+   *Done on all 3 masters* 
 
 ``` bash
 ubuntu@ip-172-31-0-10:/etc/systemd/system$ ls | grep etcd
@@ -1537,7 +1538,8 @@ ubuntu@ip-172-31-0-10:/etc/systemd/system$
 ```
 
 
-1. Start and enable the **etcd** Server
+8. Start and enable the `etcd` Server  
+   *Done on all 3 masters* 
 ``` bash
 ubuntu@ip-172-31-0-12:~$ {
 > sudo systemctl daemon-reload
