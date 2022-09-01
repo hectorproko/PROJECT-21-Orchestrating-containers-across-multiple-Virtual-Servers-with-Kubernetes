@@ -1864,8 +1864,8 @@ sudo systemctl status kube-scheduler
 1. To get the cluster details run:
 
 `kubectl cluster-info  --kubeconfig admin.kubeconfig`
-![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/clusterinfo.png) 
-*(No need to use --kubeconfig admin.kubeconfig I already replaced .kube/config with it making it default)*
+![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/clusterinfo.png)  
+*(wont use --kubeconfig admin.kubeconfig here on I replaced .kube/config with it making it default)*
 
 <!-- 
 ``` bash 
