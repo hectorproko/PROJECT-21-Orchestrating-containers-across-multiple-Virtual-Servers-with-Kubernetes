@@ -1602,12 +1602,14 @@ ubuntu@ip-172-31-0-12:~$
 
 
 
-## BOOTSTRAP THE CONTROL PLANE
+## STEP 7 - BOOTSTRAP THE CONTROL PLANE
 
-1. Create the Kubernetes configuration directory:  
+In this section, we will configure the components for the **control plane** on the **master/controller nodes**.  
+
+1. Creating the Kubernetes **configuration directory**:  
 `sudo mkdir -p /etc/kubernetes/config`
 
-2. Download the official Kubernetes release binaries:  
+2. Downloading the official Kubernetes release binaries:  
 ``` bash
 ubuntu@ip-172-31-0-10:~$ wget -q --show-progress --https-only --timestamping \
 > "https://storage.googleapis.com/kubernetes-release/release/v1.21.0/bin/linux/amd64/kube-apiserver" \
@@ -1621,7 +1623,7 @@ kubectl                             100%[=======================================
 ubuntu@ip-172-31-0-10:~$
 ```
 
-3. Install the Kubernetes binaries:  
+3. Installing the Kubernetes binaries:  
 ``` bash
 ubuntu@ip-172-31-0-10:~$ {
 > chmod +x kube-apiserver kube-controller-manager kube-scheduler kubectl
@@ -1649,8 +1651,14 @@ ca-key.pem  ca.pem  encryption-config.yaml  master-kubernetes-key.pem  master-ku
 ubuntu@ip-172-31-0-10:~$
 ```
 
-Get internal IP to build file  
+The instance's **internal IP** address will be used to advertise the `API Server` to members of the cluster.  
+Getting the **internal IP** to build the file  
 `export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)`  
+
+Creating the `kube-apiserver.service` **systemd** unit file:  
+[kube-apiserver Documentation](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/)
+
+
 
 5. Configure the Kubernetes Controller Manager:  
 
