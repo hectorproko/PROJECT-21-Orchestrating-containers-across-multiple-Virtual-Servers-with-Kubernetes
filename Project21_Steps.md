@@ -2146,11 +2146,51 @@ ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${worker_3_ip}
  
 * `ipset` is an extension to iptables which is used to configure firewall rules on a Linux server. ipset is a module extension to iptables that allows firewall configuration on a "set" of IP addresses. Compared with how iptables does the configuration linearly, ipset is able to store sets of addresses and index the data structure, making lookups very efficient, even when dealing with large sets. Kubernetes uses ipsets to implement a distributed firewall solution that enforces network policies within the cluster. This can then help to further restrict communications across pods or namespaces. For example, if a namespace is configured with DefaultDeny isolation type (Meaning no connection is allowed to the namespace from another namespace), network policies can be configured in the namespace to whitelist the traffic to the pods in that namespace.
 
-## QUICK OVERVIEW OF KUBERNETES NETWORK POLICY AND HOW IT IS IMPLEMENTED
+## STEP 10 - QUICK OVERVIEW OF KUBERNETES NETWORK POLICY AND HOW IT IS IMPLEMENTED
 
-DOING THIS ON ALL 3 WORKERS  
+**Quick Overview Of Kubernetes Network Policy And How It Is Implemented**  
+Kubernetes network policies are **application** centric compared to infrastructure/network centric standard firewalls. There are no explicit CIDR or IP used for matching source or destination IP’s. Network policies build up on labels and selectors which are key concepts of Kubernetes that are used for proper organization *(for e.g dedicating a namespace to data layer and controlling which app is able to connect there)*. A typical network policy that controls who can connect to the database namespace will look like below:
 
-Turning off swap not sure if it was one to begin with  
+*Example:*  
+``` bash
+apiVersion: extensions/v1beta1
+kind: NetworkPolicy
+metadata:
+  name: database-network-policy
+  namespace: tooling-db
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  ingress:
+   - from:
+     - namespaceSelector:
+       matchLabels:
+         app: tooling
+     - podSelector:
+       matchLabels:
+       role: frontend
+   ports:
+     - protocol: tcp
+     port: 3306
+```
+**NOTE**: Best practice is to use solutions like **RDS** for database implementation. So the above is just to help understand the concept.  
+
+
+
+*Doing in all 3 Workers*    
+
+
+1. Disabling **Swap**
+If [swap](https://opensource.com/article/18/9/swap-space-linux-systems) is not disabled, kubelet will not start. It is highly recommended to allow Kubernetes to handle resource allocation.  
+
+Test if swap is already enabled on the host:  
+`sudo swapon --show`
+
+If there is no output, then you are good to go. Otherwise, run below command to turn it off  
+`sudo swapoff -a`  
+
+
 ``` bash
 ubuntu@ip-172-31-0-20:~$ sudo swapon --show
 sudo: unable to resolve host ip-172-31-0-20
@@ -2306,7 +2346,7 @@ ubuntu@ip-172-31-0-20:~$
 ```
 
 
-5. Create directories for to configure `kubelet`, `kube-proxy`, `cni`, and a directory to keep the `kubernetes root ca` file:  
+1. Create directories for to configure `kubelet`, `kube-proxy`, `cni`, and a directory to keep the `kubernetes root ca` file:  
 ``` bash
 sudo mkdir -p \
   /var/lib/kubelet \
