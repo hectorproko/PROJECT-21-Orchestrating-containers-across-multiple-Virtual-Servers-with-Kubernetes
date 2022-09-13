@@ -1653,7 +1653,7 @@ ubuntu@ip-172-31-0-10:~$
 
 The instance's **internal IP** address will be used to advertise the `API Server` to members of the cluster.  
 Getting the **internal IP** to build the file  
-`export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)`  
+`export INTERNAL_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4`  
 
 Creating the `kube-apiserver.service` **systemd** unit file:  
 [Documentation kube-apiserver ](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/)
@@ -1861,7 +1861,7 @@ sudo systemctl status kube-scheduler
 
 ## STEP 8 - TEST THAT EVERYTHING IS WORKING FINE
 
-1. To get the cluster details run:
+1. Getting cluster details:
 
 `kubectl cluster-info  --kubeconfig admin.kubeconfig`
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/clusterinfo.png)  
@@ -1878,7 +1878,7 @@ hector@hector-Laptop:~/ca-authority$
 
 
 
-1. To get the current namespaces:
+2. Checking the current **namespaces**:
 ``` bash
 hector@hector-Laptop:~/ca-authority$ kubectl get namespaces --kubeconfig admin.kubeconfig
 NAME              STATUS   AGE
@@ -1889,10 +1889,12 @@ kube-system       Active   24h
 hector@hector-Laptop:~/ca-authority$
 ```
 
-3. To reach the Kubernetes API Server publicly (workers with Private IP from master to master)
-curl --cacert /var/lib/kubernetes/ca.pem https://$INTERNAL_IP:6443/version
+3.  To reach the Kubernetes **API Server** publicly 
+<!--(workers with Private IP from master to master) -->
+`curl --cacert /var/lib/kubernetes/ca.pem https://$INTERNAL_IP:6443/version`
 
 ``` bash
+#Master IPs
 ubuntu@ip-172-31-0-10:~$ curl --cacert /var/lib/kubernetes/ca.pem  https://172.31.0.10:6443/version
 {
   "major": "1",
@@ -1930,16 +1932,18 @@ ubuntu@ip-172-31-0-10:~$ curl --cacert /var/lib/kubernetes/ca.pem  https://172.3
 ```
 
 
-4. To get the status of each component:
+4. Getting the status of each component:
 `kubectl get componentstatuses --kubeconfig admin.kubeconfig` 
 
-I had to transfer the file admin.kueconfig to the master before running this command  
-
-`publicIP="ec2-54-160-126-224.compute-1.amazonaws.com"`
-`publicIP="ec2-54-160-126-195.compute-1.amazonaws.com"`
-`publicIP="ec2-54-237-217-61.compute-1.amazonaws.com"`
-
-`scp -i "k8s-cluster-from-ground-up.id_rsa" admin.kubeconfig ubuntu@$publicIP:~/`
+I had to transfer the file `admin.kueconfig` to the master before running this command  
+``` bash
+#Putting Public IPs into variables
+publicIP="ec2-54-160-126-224.compute-1.amazonaws.com"
+publicIP="ec2-54-160-126-195.compute-1.amazonaws.com"
+publicIP="ec2-54-237-217-61.compute-1.amazonaws.com"
+#Using variable to connect
+scp -i "k8s-cluster-from-ground-up.id_rsa" admin.kubeconfig ubuntu@$publicIP:~/
+```
 
 ``` bash
 ubuntu@ip-172-31-0-10:~$ kubectl get componentstatuses --kubeconfig admin.kubeconfig
@@ -1974,9 +1978,9 @@ ubuntu@ip-172-31-0-12:~$
 ```
 
 
-5. On one of the controller nodes, configure Role Based Access Control (RBAC) so that the `api-server` has necessary authorization for for the `kubelet`.  
+1. Configuring *Role Based Access Control (**RBAC**)* on one of the controller nodes so that the `api-server` has necessary authorization for the `kubelet`.  
 
-Create the **ClusterRole**:  
+Creating the **ClusterRole**:  
 
 ``` bash
 ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl apply --kubeconfig admin.kubeconfig -f -
@@ -2004,7 +2008,8 @@ clusterrole.rbac.authorization.k8s.io/system:kube-apiserver-to-kubelet created
 ubuntu@ip-172-31-0-10:
 ```
 
-Did not seem to generate any new files, this was done on master0  
+<!-- Did not seem to generate any new files, this was done on master0   -->
+*Example done on master0*  
 
 ``` bash
 ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl --kubeconfig admin.kubeconfig  apply -f -
@@ -2032,7 +2037,7 @@ ubuntu@ip-172-31-0-10:
 
 
 
-## CONFIGURING THE KUBERNETES WORKER NODES  
+## STEP 9 - CONFIGURING THE KUBERNETES WORKER NODES  
 
 In all 3 masters
 
