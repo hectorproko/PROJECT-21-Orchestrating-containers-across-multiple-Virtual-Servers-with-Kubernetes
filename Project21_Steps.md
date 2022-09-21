@@ -2421,7 +2421,10 @@ ubuntu@ip-172-31-0-20:~$
 ```
 
 
-## CONFIGURE THE WORKER NODES COMPONENTS  
+## STEP 11 - CONFIGURE THE WORKER NODES COMPONENTS  
+
+**Configuring the network**  
+Get the **POD_CIDR** that will be used as part of network configuration
 
 ``` bash
 ubuntu@ip-172-31-0-20:~$ POD_CIDR=$(curl -s http://169.254.169.254/latest/user-data/ \
@@ -2441,7 +2444,35 @@ ubuntu@ip-172-31-0-22:~$ echo "${POD_CIDR}"
 ubuntu@ip-172-31-0-22:~$
 ```
 
-10. Configure the bridge and loopback networks  
+`POD_CIDR` was configured at the time of creating the worker nodes in:  
+*STEP 2 - CREATE COMPUTE RESOURCES - 4.Creating 3 worker nodes (EC2 Instances)*  
+``` bash
+--user-data "name=worker-${i}|pod-cidr=172.20.${i}.0/24" \
+```
+
+The `--user-data` flag is where we specified what we want the POD_CIDR to be. It is very important to ensure that the CIDR does not overlap with EC2 IPs within the subnet.  
+
+Understanding the Kubernetes networking model:  
+
+The networking model assumes a **flat network**, in which **containers** and **nodes** can communicate with each other. That means, regardless of which node is running the container in the cluster, Kubernetes expects that all the containers must be able to communicate with each other. Therefore, any network interface used for a Kubernetes implementation must follow this requirement. Otherwise, containers running in [pods](https://kubernetes.io/docs/concepts/workloads/pods/) will not be able to communicate. Of course, this has security concerns. Because if an attacker is able to get into the cluster through a compromised container, then the entire cluster can be exploited.  
+
+To mitigate security risks and have a better controlled network topology, Kubernetes uses [CNI](https://github.com/containernetworking/cni)*(Container Network Interface)* to manage [Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/) which can be used to operate the **Pod network** through external plugins such as **Calico**, **Flannel** or **Weave Net** to name a few. With these, you can set policies similar to how you would configure segurity groups in AWS and limit network communications through either cidr `ipBlock`, `namespaceSelectors`, or `podSelectors`.  
+
+Basic concepts around Kubernetes networking:  
+
+**Pods:**  
+A [Pod](https://kubernetes.io/docs/concepts/workloads/pods/) is the basic building block of Kubernetes; it is the smallest and simplest unit in the Kubernetes object model that you create or deploy. A Pod represents a running process on your cluster.
+It encapsulates a container running an application (or, in some cases, multiple containers), storage resources, a unique network IP, and options that govern how the container(s) should run. All the containers running inside a Pod can reach each other on localhost.
+
+In most cases one Pod contains just one container, but there are some design patterns that imply multi-container pods (e.g. `sidecar`, `ambassador`, `adapter`)  
+[Multi-Container Pod article](https://betterprogramming.pub/understanding-kubernetes-multi-container-pod-patterns-577f74690aee)  
+
+**Pod Network:**  
+You must decide on the **Pod CIDR** per **worker node**. Each **worker node** will run multiple **pods**, and each **pod** will have its own **IP address**. IP address of a particular Pod on worker **node 1** should be able to communicate with the IP address of another particular Pod on worker **node 2**. For this to become possible, there must be a **bridge network** with virtual network interfaces that connects them all together.  
+
+[Additional read](https://www.digitalocean.com/community/tutorials/kubernetes-networking-under-the-hood) that goes a little deeper  
+
+1. Configure the **bridge** and **loopback** networks  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ cat > 172-20-bridge.conf <<EOF
 > {
@@ -2462,6 +2493,8 @@ ubuntu@ip-172-31-0-20:~$ cat > 172-20-bridge.conf <<EOF
 > EOF
 ubuntu@ip-172-31-0-20:~$ ls | grep bridge
 172-20-bridge.conf
+```
+``` bash
 ubuntu@ip-172-31-0-20:~$ cat > 99-loopback.conf <<EOF
 > {
 >     "cniVersion": "0.3.1",
@@ -2471,11 +2504,10 @@ ubuntu@ip-172-31-0-20:~$ cat > 99-loopback.conf <<EOF
 ubuntu@ip-172-31-0-20:~$ ls | grep loop
 99-loopback.conf
 ubuntu@ip-172-31-0-20:~$
-
 ```
 
 
-11. Move the files to the network configuration directory:  
+2. Move the files to the network configuration directory:  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ sudo mv 172-20-bridge.conf 99-loopback.conf /etc/cni/net.d/
 sudo: unable to resolve host ip-172-31-0-20
@@ -2484,7 +2516,7 @@ ubuntu@ip-172-31-0-20:~$ ls /etc/cni/net.d/
 ubuntu@ip-172-31-0-20:~$
 ```
 
-12. Store the worker’s name in a variable: *(sample on worker 0)*  
+3. Store the worker’s name in a variable: *(sample done worker 0)*  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ NAME=k8s-cluster-from-ground-up
 ubuntu@ip-172-31-0-20:~$ WORKER_NAME=${NAME}-$(curl -s http://169.254.169.254/latest/user-data/ \
@@ -2495,7 +2527,7 @@ ubuntu@ip-172-31-0-20:~$
 ```  
 
 
-13. Move the certificates and `kubeconfig` file to their respective configuration directories:  
+4. Move the certificates and `kubeconfig` file to their respective configuration directories:  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ ls -l
 total 87512
@@ -2528,7 +2560,7 @@ ubuntu@ip-172-31-0-20:~$
 
 
 
-14. Create the `kubelet-config.yaml` file *(example worker0)*  
+5. Create the `kubelet-config.yaml` file *(example worker0)*  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ NAME=k8s-cluster-from-ground-up
 ubuntu@ip-172-31-0-20:~$ WORKER_NAME=${NAME}-$(curl -s http://169.254.169.254/latest/user-data/ \
@@ -2551,6 +2583,8 @@ runtimeRequestTimeout: "15m"
 tlsCertFile: "/var/lib/kubelet/${WORKER_NAME}.pem"
 ubuntu@ip-172-31-0-20:~$ echo "${WORKER_NAME}"
 k8s-cluster-from-ground-up-worker-0
+```
+``` bash
 ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
 > kind: KubeletConfiguration
 > apiVersion: kubelet.config.k8s.io/v1beta1
@@ -2597,7 +2631,7 @@ ubuntu@ip-172-31-0-20:~$
 
 ## FINAL STEPS  
 
-15. Configure the `kubelet` systemd service  
+1. Configure the `kubelet` systemd service  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
 > [Unit]
@@ -2645,7 +2679,7 @@ WantedBy=multi-user.target
 ubuntu@ip-172-31-0-20:~$
 ```
 
-16. Create the `kube-proxy.yaml` file  
+2. Create the `kube-proxy.yaml` file  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 > kind: KubeProxyConfiguration
@@ -2671,7 +2705,7 @@ ubuntu@ip-172-31-0-20:~$
 
 
 
-17. Configure the Kube Proxy systemd service  
+3. Configure the Kube Proxy systemd service  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
 > [Unit]
@@ -2704,7 +2738,7 @@ ubuntu@ip-172-31-0-20:~$
 
 
 
-18. Reload configurations and start both services  
+4. Reload configurations and start both services  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ {
 >   sudo systemctl daemon-reload
