@@ -2631,6 +2631,22 @@ ubuntu@ip-172-31-0-20:~$
 
 ## FINAL STEPS  
 
+Rather than using multiple startup flags in systemd it is recommended to create the `kubelet-config.yaml` and set the configuration there. We will simply point to the `yaml` file.  
+
+The config file specifies where to find **certificates**, the **DNS** server, and **authentication** information. As you already know, `kubelet` is responsible for the containers running on the node, regardless if the runtime is Docker or Containerd; as long as the containers are being created through Kubernetes, `kubelet` manages them. Kubernetes is not aware of it of container created from containerd/docker, therefore `kubelet` will not manage those. Kubelet’s major responsibility is to always watch the containers in its care, by default every 20 seconds, and ensuring that they are always running. Think of it as a process watcher.  
+
+The clusterDNS is the address of the DNS server. As of Kubernetes v1.12, CoreDNS is the recommended DNS Server  
+
+
+<!-- Note: The CoreDNS Service is named kube-dns(When you see kube-dns, just know that it is using CoreDNS).
+
+This is more of a backward compatibility reasons for workloads that relied on the legacy kube-dns Service name. -->
+
+In Kubernetes, Pods are able to find each other using service names through the internal DNS server. Every time a service is created, it gets registered in the DNS server.  
+
+In Kubernetes, the kubelet process on a worker node configures each pod. Part of the configuration process is to create the file `/etc/resolv.conf` and specify the correct DNS server.
+
+
 1. Configure the `kubelet` systemd service  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
@@ -2754,7 +2770,7 @@ sudo: unable to resolve host ip-172-31-0-20
 ubuntu@ip-172-31-0-20:~$
 ```
 
-TEST IT  
+TESTING IT  
 
 ``` bash
 hector@hector-Laptop:~/ca-authority$ kubectl get nodes --kubeconfig admin.kubeconfig -o wide
@@ -2765,7 +2781,6 @@ ip-172-31-0-22   Ready    <none>   6m8s    v1.21.0   172.31.0.22   <none>       
 hector@hector-Laptop:~/ca-authority$
 ```
 
-If I shut down the workers status changes to NotReady
+<!-- If I shut down the workers status changes to NotReady -->
 
 
-fd
