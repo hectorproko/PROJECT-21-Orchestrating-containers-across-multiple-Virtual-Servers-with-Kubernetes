@@ -1978,7 +1978,7 @@ ubuntu@ip-172-31-0-12:~$
 ```
 
 
-1. Configuring *Role Based Access Control (**RBAC**)* on one of the controller nodes so that the `api-server` has necessary authorization for the `kubelet`.  
+5. Configuring *Role Based Access Control (**RBAC**)* on one of the controller nodes so that the `api-server` has necessary authorization for the `kubelet`.  
 
 Creating the **ClusterRole**:  
 
@@ -2149,9 +2149,11 @@ ssh -i k8s-cluster-from-ground-up.id_rsa ubuntu@${worker_3_ip}
 ## STEP 10 - QUICK OVERVIEW OF KUBERNETES NETWORK POLICY AND HOW IT IS IMPLEMENTED
 
 **Quick Overview Of Kubernetes Network Policy And How It Is Implemented**  
-Kubernetes network policies are **application** centric compared to infrastructure/network centric standard firewalls. There are no explicit CIDR or IP used for matching source or destination IP’s. Network policies build up on labels and selectors which are key concepts of Kubernetes that are used for proper organization *(for e.g dedicating a namespace to data layer and controlling which app is able to connect there)*. A typical network policy that controls who can connect to the database namespace will look like below:
 
-*Example:*  
+Kubernetes network policies are **application** centric compared to **infrastructure/network** centric standard firewalls. There are no explicit CIDR or IP used for matching source or destination IP’s. Network policies build up on labels and selectors which are key concepts of Kubernetes that are used for proper organization 
+*(for e.g dedicating a namespace to data layer and controlling which app is able to connect there)*.  
+
+*Example of a typical network policy that controls who can connect to the database namespace:*  
 ``` bash
 apiVersion: extensions/v1beta1
 kind: NetworkPolicy
@@ -2191,22 +2193,17 @@ If there is no output, then you are good to go. Otherwise, run below command to 
 `sudo swapoff -a`  
 
 
-``` bash
-ubuntu@ip-172-31-0-20:~$ sudo swapon --show
-sudo: unable to resolve host ip-172-31-0-20
-ubuntu@ip-172-31-0-20:~$ sudo swapoff -a
-sudo: unable to resolve host ip-172-31-0-20
-ubuntu@ip-172-31-0-20:~$
-```
 
-
+2. Download and install a container runtime  
+**Containerd**  
 Download binaries for `runc`, `cri-ctl`, and `containerd`  
 ``` bash
  wget https://github.com/opencontainers/runc/releases/download/v1.0.0-rc93/runc.amd64 \
   https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.21.0/crictl-v1.21.0-linux-amd64.tar.gz \
   https://github.com/containerd/containerd/releases/download/v1.4.4/containerd-1.4.4-linux-amd64.tar.gz 
-```  
+``` 
 
+We confirm all the files we just downloaded  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ ls -ls
 total 63076
@@ -2222,7 +2219,7 @@ ubuntu@ip-172-31-0-20:~$
 ```  
 
 
-Configure containerd:  
+Configure **containerd**:  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ {
 >   mkdir containerd
@@ -2244,18 +2241,11 @@ sudo: unable to resolve host ip-172-31-0-20
 sudo: unable to resolve host ip-172-31-0-20
 sudo: unable to resolve host ip-172-31-0-20
 ubuntu@ip-172-31-0-20:~$fd
+```
 
+
+``` bash
 ubuntu@ip-172-31-0-20:~$ sudo mkdir -p /etc/containerd/
-sudo: unable to resolve host ip-172-31-0-20
-cat << EOF | sudo tee /etc/containerd/config.toml
-[plugins]
-  [plugins.cri.containerd]
-    snapshotter = "overlayfs"
-    [plugins.cri.containerd.default_runtime]
-      runtime_type = "io.containerd.runtime.v1.linux"
-      runtime_engine = "/usr/local/bin/runc"
-      runtime_root = ""
-EOF
 ubuntu@ip-172-31-0-20:~$ cat << EOF | sudo tee /etc/containerd/config.toml
 > [plugins]
 >   [plugins.cri.containerd]
@@ -2273,6 +2263,9 @@ sudo: unable to resolve host ip-172-31-0-20
       runtime_type = "io.containerd.runtime.v1.linux"
       runtime_engine = "/usr/local/bin/runc"
       runtime_root = ""
+```
+Checking `config.toml` content
+``` bash
 ubuntu@ip-172-31-0-20:~$ cat /etc/containerd/config.toml
 [plugins]
   [plugins.cri.containerd]
@@ -2324,6 +2317,9 @@ LimitNPROC=infinity
 LimitCORE=infinity
 [Install]
 WantedBy=multi-user.target
+```
+Confirming `containerd.service` creation/content
+``` bash
 ubuntu@ip-172-31-0-20:~$ cat /etc/systemd/system/containerd.service
 [Unit]
 Description=containerd container runtime
@@ -2346,7 +2342,7 @@ ubuntu@ip-172-31-0-20:~$
 ```
 
 
-1. Create directories for to configure `kubelet`, `kube-proxy`, `cni`, and a directory to keep the `kubernetes root ca` file:  
+3. Create directories for to configure `kubelet`, `kube-proxy`, `cni`, and a directory to keep the `kubernetes root ca` file:  
 ``` bash
 sudo mkdir -p \
   /var/lib/kubelet \
@@ -2357,13 +2353,25 @@ sudo mkdir -p \
   /var/run/kubernetes
 ```
 
-6. Download and Install CNI
+4. Download and Install **CNI**  
+
+CNI (Container Network Interface), a [Cloud Native Computing Foundation project](https://www.cncf.io/), consists of a specification and libraries for writing plugins to configure network interfaces in Linux containers. It also comes with a number of plugins.  
+
+Kubernetes uses CNI as an interface between network providers and Kubernetes Pod networking. Network providers create network plugin that can be used to implement the Kubernetes networking, and includes additional set of rich features that Kubernetes does not provide out of the box.  
+
+Downloading the plugins  
 ``` bash
 ubuntu@ip-172-31-0-20:~$ wget -q --show-progress --https-only --timestamping \
 >   https://github.com/containernetworking/plugins/releases/download/v0.9.1/cni-plugins-linux-amd64-v0.9.1.tgz
 cni-plugins-linux-amd64-v0.9.1.tgz 100%[===============================================================>]  37.93M   110MB/s    in 0.3s
+
+```
+
+Install **CNI** into `/opt/cni/bin/`  
+``` bash
 ubuntu@ip-172-31-0-20:~$ sudo tar -xvf cni-plugins-linux-amd64-v0.9.1.tgz -C /opt/cni/bin/
 sudo: unable to resolve host ip-172-31-0-20
+#The output shows the plugins that comes with the CNI.
 ./
 ./macvlan
 ./flannel
@@ -2384,9 +2392,12 @@ sudo: unable to resolve host ip-172-31-0-20
 ./bandwidth
 ubuntu@ip-172-31-0-20:~$
 ```
+Other plugins that are not included in the CNI, which are also widely used in the industry. They all have their unique implementation approach and set of features.  
+* [Calico](https://www.projectcalico.org/)
+* [Weave Net](https://www.weave.works/docs/net/latest/overview/)
+* [flannel](https://github.com/flannel-io/flannel)
 
-
-7. Download binaries for `kubectl`, `kube-proxy`, and `kubelet`  
+5. Download binaries for `kubectl`, `kube-proxy`, and `kubelet`  
 
 ``` bash
 ubuntu@ip-172-31-0-20:~$ wget -q --show-progress --https-only --timestamping \
@@ -2399,9 +2410,7 @@ kubelet                            100%[========================================
 ubuntu@ip-172-31-0-20:~$
 ```
 
-
-
-8. Install the downloaded binaries
+6. Install the downloaded binaries
 ``` bash
 ubuntu@ip-172-31-0-20:~$ {
 >   chmod +x  kubectl kube-proxy kubelet
