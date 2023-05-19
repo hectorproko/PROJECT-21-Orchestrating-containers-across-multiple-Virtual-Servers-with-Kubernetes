@@ -7,11 +7,14 @@ Project 21
 ## INSTALL CLIENT TOOLS BEFORE BOOTSTRAPPING THE CLUSTER.
 
 **Install and configure AWS CLI**  
-Will use previously configured credentials **AWS CLI** configured already, Devops Account using **Terraform** User
 
+We will utilize the existing *AWS CLI* setup *(from [Project 15](https://github.com/hectorproko/AWS-CLOUD-SOLUTION-FOR-2-COMPANY-WEBSITES-USING-A-REVERSE-PROXY-TECHNOLOGY/blob/main/Project15_Steps.md#project-15-steps)*
+), which has already been configured, along with the **DevOps** account and a user **Terraform** *(used in [AUTOMATE-INFRASTRUCTURE-WITH-IAC-USING-TERRAFORM-PART-1-to-4](https://github.com/hectorproko/AUTOMATE-INFRASTRUCTURE-WITH-IAC-USING-TERRAFORM-PART-1-to-4/tree/main)
+).*  
 
 **Installing kubectl**  
-Did the wget
+[Kubernetes Doc](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)
+
 ``` bash
 hector@hector-Laptop:~$ chmod +x kubectl
 hector@hector-Laptop:~$ ls -a | grep kubectl
@@ -25,7 +28,12 @@ Client Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCom
 hector@hector-Laptop:~$
 ```
 
-**Install CFSSL and CFSSLJSON**  
+**Install CFSSL and CFSSLJSON**
+CFSSL (CloudFlare's PKI/TLS toolkit) and CFSSLJSON are tools developed by Cloudflare for managing public key infrastructure (PKI) and X.509 certificates.
+
+- [CFSSL](https://blog.cloudflare.com/introducing-cfssl/) is a command-line tool and a server for signing, verifying, and bundling X.509 certificates.
+- [CFSSLJSON](https://github.com/cloudflare/cfssl) is a utility that provides a JSON-based interface to CFSSL.
+
 ``` bash
 hector@hector-Laptop:~$ wget -q --show-progress --https-only --timestamping \
 >   https://storage.googleapis.com/kubernetes-the-hard-way/cfssl/1.4.1/linux/cfssl \
@@ -49,7 +57,7 @@ hector@hector-Laptop:~$
 ## Step 1 – Configure Network Infrastructure
 ### AWS CLOUD RESOURCES FOR KUBERNETES CLUSTER  
 
-As we already know, we need some compute power to run the **control plane** and the **worker nodes**. In this section, we will provision **EC2 Instances** required to run our **K8s cluster**. We will do **manual** provisioning using `awscli` to have thorough knowledge about the whole setup. After that, we can redo the entire project using Terraform. This manual approach its to solidify our skills and have the opportunity to face more challenges.  
+As we already know, we need some compute power to run the **control plane** and the **worker nodes**. In this section, we will provision **EC2 Instances** required to run our **K8s cluster**. We will do **manual** provisioning using `awscli` to have thorough knowledge about the whole setup. After that, we can redo the entire project using Terraform. This manual approach its to solidify our skills and have the opportunity to face more challenges.
 
 1. Creating a directory named `k8s-cluster-from-ground-up`:    
 ``` bash
@@ -57,6 +65,7 @@ hector@hector-Laptop:~$ mkdir k8s-cluster-from-ground-up`
 ```  
 
 **Virtual Private Cloud – VPC**
+
 2. Creating a **VPC** and storing the **ID** in a **variable** `VPC_ID`:  
 ``` bash
 hector@hector-Laptop:~$ VPC_ID=$(aws ec2 create-vpc \
@@ -65,7 +74,7 @@ hector@hector-Laptop:~$ VPC_ID=$(aws ec2 create-vpc \
 > )
 ```  
 
-3. **Tag**ging the **VPC** to name it  
+3. **Tag**ging the **VPC** to name it:  
      
 ``` bash
 hector@hector-Laptop:~$ NAME=k8s-cluster-from-ground-up #Create variable
@@ -92,7 +101,7 @@ hector@hector-Laptop:~$
 
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/yourvpc.png)  
 
-6. Set the required **AWS Region** `AWS_REGION=us-east-1`  
+6. Set the required **AWS Region** `AWS_REGION=us-east-1`:  
 
 7. Configure **DHCP Options Set**:
 *By default **EC2** instances have fully qualified names like `ip-172-50-197-106.eu-central-1.compute.internal`. We will set our own configuration shown below.*  
@@ -105,7 +114,7 @@ hector@hector-Laptop:~$ DHCP_OPTION_SET_ID=$(aws ec2 create-dhcp-options \
 >   --output text --query 'DhcpOptions.DhcpOptionsId')
 ```
 
-8. **Tag**ing the **DHCP Option set** to make the **domain name** appear  
+8. **Tag**ing the **DHCP Option set** to make the **domain name** appear:  
 ``` bash
 hector@hector-Laptop:~$ aws ec2 create-tags \
 >   --resources ${DHCP_OPTION_SET_ID} \
@@ -351,11 +360,6 @@ VPC > Security > Security groups
 
 
 
-
-
-
-
-
 14.  Creating a **Network Load Balancer**:  
 ``` bash
 hector@hector-Laptop:~$ LOAD_BALANCER_ARN=$(aws elbv2 create-load-balancer \
@@ -398,7 +402,7 @@ hector@hector-Laptop:~$ aws elbv2 register-targets \
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/targetgroups2.png)  
 
 
-17. Creating a **listener** to listen for requests and forward to the **target nodes** on **TCP port** `6443`  
+17. Creating a **listener** to listen for requests and forward to the **target nodes** on **TCP port** `6443`:  
 ``` bash
 hector@hector-Laptop:~$ aws elbv2 create-listener \
 > --load-balancer-arn ${LOAD_BALANCER_ARN} \
@@ -414,7 +418,7 @@ hector@hector-Laptop:~$
 
 
 
-18. Get the Kubernetes Public address
+18. Get the Kubernetes Public address:
 ``` bash
 hector@hector-Laptop:~$ KUBERNETES_PUBLIC_ADDRESS=$(aws elbv2 describe-load-balancers \
 > --load-balancer-arns ${LOAD_BALANCER_ARN} \
@@ -443,7 +447,7 @@ hector@hector-Laptop:~$ echo $IMAGE_ID
 ami-0b0ea68c435eb488d
 ```
 
-2. Creating **SSH Key-Pair**  
+2. Creating **SSH Key-Pair**:  
 ``` bash
 hector@hector-Laptop:~$ mkdir -p ssh
 hector@hector-Laptop:~$ aws ec2 create-key-pair \
@@ -511,6 +515,7 @@ hector@hector-Laptop:~$ for i in 0 1 2; do
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/instances2.png)  
 
 ## STEP 3 - PREPARE THE SELF-SIGNED CERTIFICATE AUTHORITY AND GENERATE TLS CERTIFICATES  
+
 The following components running on the **Master nodes** require **TLS certificates**.    
 `kube-controller-manager`  
 `kube-scheduler`  
