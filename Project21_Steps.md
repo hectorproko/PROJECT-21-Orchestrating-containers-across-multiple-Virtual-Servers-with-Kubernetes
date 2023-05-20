@@ -1,5 +1,17 @@
-# PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes
-Project 21
+# PROJECT-21 Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes
+
+## Description
+This project showcases a demonstration of setting up a Kubernetes cluster from scratch, aiming to exhibit a comprehensive understanding of the technology. The project encompasses the installation and configuration of Kubernetes control plane components, worker nodes, and networking. The instructions provided are designed for a Linux-based environment.
+
+## Technologies/Tools used:
+- Linux-based operating system.
+- AWS resources provisioning (VPC, subnets, security groups).
+- Kubernetes control plane components (masters) and worker nodes.
+- Networking setup for control plane and worker nodes.
+- Testing cluster connectivity and troubleshooting.
+- Configuration of Kubernetes worker node components and network policies.
+
+--- 
 
 ## KUBERNETES ARCHITECTURE  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/K8s_architecture.png)
