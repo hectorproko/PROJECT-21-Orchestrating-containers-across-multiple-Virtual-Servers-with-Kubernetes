@@ -40,7 +40,7 @@ Client Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCom
 hector@hector-Laptop:~$
 ```
 
-**Install CFSSL and CFSSLJSON**
+**Install CFSSL and CFSSLJSON**  
 CFSSL (CloudFlare's PKI/TLS toolkit) and CFSSLJSON are tools developed by Cloudflare for managing public key infrastructure (PKI) and X.509 certificates.
 
 - [CFSSL](https://blog.cloudflare.com/introducing-cfssl/) is a command-line tool and a server for signing, verifying, and bundling X.509 certificates.
