@@ -1,5 +1,6 @@
-# PROJECT-21 Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes
-
+<!--
+Project 21
+-->
 ## Description
 This project showcases a demonstration of setting up a Kubernetes cluster from scratch, aiming to exhibit a comprehensive understanding of the technology. The project encompasses the installation and configuration of Kubernetes control plane components, worker nodes, and networking. The instructions provided are designed for a Linux-based environment.
 
@@ -221,7 +222,7 @@ hector@hector-Laptop:~$ aws ec2 create-route \
 }
 ```
 
-VPC > Route tables
+VPC > Route tables  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/routetables.png)  
 
 
@@ -1880,7 +1881,7 @@ sudo systemctl status kube-scheduler
 
 1. Getting cluster details:
 
-`kubectl cluster-info  --kubeconfig admin.kubeconfig`
+`kubectl cluster-info  --kubeconfig admin.kubeconfig`  
 ![Markdown Logo](https://raw.githubusercontent.com/hectorproko/PROJECT-21-Orchestrating-containers-across-multiple-Virtual-Servers-with-Kubernetes/main/images/clusterinfo.png)  
 *(wont use --kubeconfig admin.kubeconfig here on I replaced .kube/config with it making it default)*
 
@@ -2047,11 +2048,6 @@ ubuntu@ip-172-31-0-10:~$ cat <<EOF | kubectl --kubeconfig admin.kubeconfig  appl
 clusterrolebinding.rbac.authorization.k8s.io/system:kube-apiserver created
 ubuntu@ip-172-31-0-10:
 ```
-
-
-
-
-
 
 
 ## STEP 9 - CONFIGURING THE KUBERNETES WORKER NODES  
